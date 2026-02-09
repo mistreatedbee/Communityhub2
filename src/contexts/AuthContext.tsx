@@ -104,15 +104,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      await refreshUserContext(data.session?.user ?? null);
-      setLoading(false);
+      try {
+        await refreshUserContext(data.session?.user ?? null);
+      } catch (error) {
+        console.error('Failed to refresh auth context', error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
-      await refreshUserContext(nextSession?.user ?? null);
-      setLoading(false);
+      try {
+        await refreshUserContext(nextSession?.user ?? null);
+      } catch (error) {
+        console.error('Failed to refresh auth context', error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     });
 
     return () => {

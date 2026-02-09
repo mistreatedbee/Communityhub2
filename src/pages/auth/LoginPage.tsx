@@ -5,7 +5,6 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { supabase } from '../../lib/supabase';
 import { getSafeErrorMessage } from '../../utils/errors';
@@ -15,7 +14,13 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { organization } = useTheme();
-  const { memberships } = useAuth();
+  const rolePriority: Record<string, number> = {
+    owner: 4,
+    admin: 3,
+    supervisor: 2,
+    employee: 1,
+    member: 0
+  };
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
@@ -38,17 +43,50 @@ export function LoginPage() {
       return;
     }
 
-    if (memberships.length > 0) {
-      const { data } = await supabase
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) {
+      navigate('/communities');
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('platform_role')
+      .eq('user_id', userId)
+      .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+
+    if (profile?.platform_role === 'super_admin') {
+      navigate('/super-admin');
+      return;
+    }
+
+    const { data: memberships } = await supabase
+      .from('organization_memberships')
+      .select('organization_id, role, status')
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    if (memberships && memberships.length > 0) {
+      const primary = memberships.sort(
+        (a, b) => (rolePriority[b.role] ?? 0) - (rolePriority[a.role] ?? 0)
+      )[0];
+      const { data: org } = await supabase
         .from('organizations')
         .select('slug')
-        .eq('id', memberships[0].organization_id)
+        .eq('id', primary.organization_id)
         .maybeSingle<{ slug: string }>();
-      if (data?.slug) {
-        navigate(`/c/${data.slug}/app`);
+      if (org?.slug) {
+        const adminRoles = ['owner', 'admin', 'supervisor'];
+        navigate(
+          adminRoles.includes(primary.role)
+            ? `/c/${org.slug}/admin`
+            : `/c/${org.slug}/app`
+        );
         return;
       }
     }
+
     navigate('/communities');
   };
 

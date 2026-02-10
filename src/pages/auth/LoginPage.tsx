@@ -44,10 +44,7 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      const signInResult = await withTimeout(
-        supabase.auth.signInWithPassword({ email, password }),
-        'Sign-in'
-      );
+      const signInResult = await supabase.auth.signInWithPassword({ email, password });
       const { data, error } = signInResult;
       if (error) {
         addToast(getSafeErrorMessage(error, 'Unable to sign in. Please check your credentials.'), 'error');
@@ -130,8 +127,10 @@ export function LoginPage() {
         }
       }
 
-      const [{ data: profile, error: profileError }, { data: memberships, error: membershipsError }] =
-        await withTimeout(
+      let profile: { platform_role: 'user' | 'super_admin' } | null = null;
+      let memberships: Array<{ organization_id: string; role: string; status: string }> | null = null;
+      try {
+        const [profileResult, membershipsResult] = await withTimeout(
           Promise.all([
             supabase
               .from('profiles')
@@ -146,9 +145,13 @@ export function LoginPage() {
           ]),
           'Profile lookup'
         );
-
-      if (profileError || membershipsError) {
-        console.error('Login profile lookup failed', profileError ?? membershipsError);
+        profile = profileResult.data;
+        memberships = membershipsResult.data as Array<{ organization_id: string; role: string; status: string }> | null;
+        if (profileResult.error || membershipsResult.error) {
+          console.error('Login profile lookup failed', profileResult.error ?? membershipsResult.error);
+        }
+      } catch (lookupError) {
+        console.error('Login profile lookup timed out', lookupError);
       }
 
       if (profile?.platform_role === 'super_admin') {
@@ -179,7 +182,7 @@ export function LoginPage() {
       navigate('/communities');
     } catch (error) {
       console.error('Login failed', error);
-      addToast('Login timed out. Please check your connection and try again.', 'error');
+      addToast(getSafeErrorMessage(error, 'Unable to sign in right now. Please try again.'), 'error');
     } finally {
       setIsLoading(false);
     }

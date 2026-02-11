@@ -1,13 +1,18 @@
--- Seed data for local/demo environments only.
--- Insert demo tenants and settings. Do NOT run in production.
+-- Seed data for local/demo environments only. Do NOT run in production.
 --
--- Super admin: Log in with email + password only (no license).
--- 1. Sign up at /login with superadmin_Hil0ph@example.com (or use Dashboard → Auth → Users).
--- 2. Run: update public.profiles set platform_role = 'super_admin' where email = 'superadmin_Hil0ph@example.com';
+-- Super admin (email + password only, no license):
+-- 1. Create the user first: Supabase Dashboard → Authentication → Users → Add user
+--    Email: superadmin_Hil0ph@example.com, set a password, confirm email.
+-- 2. Run this seed. It will set that user as super_admin.
 
-insert into public.organizations (name, slug, status, is_public, description, category, location)
+update public.profiles
+set platform_role = 'super_admin'
+where email = 'superadmin_Hil0ph@example.com';
+
+-- Demo tenant (optional)
+insert into public.organizations (name, slug, status, is_public, category, location)
 values
-  ('Demo Community', 'demo-community', 'active', true, 'Sample community for demos.', 'Tech', 'Remote')
+  ('Demo Community', 'demo-community', 'active', true, 'Tech', 'Remote')
 on conflict (slug) do nothing;
 
 insert into public.tenant_settings (organization_id, public_signup, approval_required, registration_fields_enabled)

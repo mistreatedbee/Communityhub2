@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
+import { Spinner } from '../../components/ui/Spinner';
 
 type SettingsRow = {
   id: string;
@@ -12,52 +13,121 @@ type SettingsRow = {
   privacy_url: string | null;
 };
 
+function isValidUrl(s: string): boolean {
+  if (!s.trim()) return true;
+  try {
+    new URL(s);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function SuperAdminSettingsPage() {
   const { addToast } = useToast();
   const [settings, setSettings] = useState<SettingsRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from('platform_settings')
-        .select('id, platform_name, support_email, terms_url, privacy_url')
-        .limit(1)
-        .maybeSingle<SettingsRow>();
-      setSettings(data ?? null);
-      setLoading(false);
-    };
-    void load();
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    const { data, error } = await supabase
+      .from('platform_settings')
+      .select('id, platform_name, support_email, terms_url, privacy_url')
+      .limit(1)
+      .maybeSingle<SettingsRow>();
+    setLoading(false);
+    if (error) {
+      setLoadError(error.message);
+      return;
+    }
+    setSettings(data ?? null);
   }, []);
+
+  const createDefault = useCallback(async () => {
+    setCreating(true);
+    setCreateError(null);
+    const { data, error } = await supabase
+      .from('platform_settings')
+      .insert({ platform_name: 'CommunityHub' })
+      .select('id, platform_name, support_email, terms_url, privacy_url')
+      .maybeSingle<SettingsRow>();
+    setCreating(false);
+    if (error) {
+      setCreateError(error.message);
+      return;
+    }
+    setSettings(data ?? null);
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
 
   const handleSave = async () => {
     if (!settings) return;
+    const name = settings.platform_name?.trim() ?? '';
+    if (!name) {
+      addToast('Platform name is required.', 'error');
+      return;
+    }
+    if (settings.terms_url && !isValidUrl(settings.terms_url)) {
+      addToast('Terms URL must be a valid URL.', 'error');
+      return;
+    }
+    if (settings.privacy_url && !isValidUrl(settings.privacy_url)) {
+      addToast('Privacy URL must be a valid URL.', 'error');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('platform_settings').upsert(settings);
     setSaving(false);
     if (error) {
-      addToast('Unable to save settings.', 'error');
+      addToast(error.message ? `Unable to save: ${error.message}` : 'Unable to save settings.', 'error');
       return;
     }
     addToast('Settings saved.', 'success');
   };
 
   if (loading) {
-    return <div className="text-gray-500">Loading settings...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-4">
+        <Spinner />
+        <p className="text-gray-500">Loading settings...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-2xl space-y-4">
+        <p className="text-red-600">{loadError}</p>
+        <Button onClick={() => void load()}>Retry</Button>
+      </div>
+    );
   }
 
   if (!settings) {
-    const createDefault = async () => {
-      const { data } = await supabase
-        .from('platform_settings')
-        .insert({ platform_name: 'CommunityHub' })
-        .select('id, platform_name, support_email, terms_url, privacy_url')
-        .maybeSingle<SettingsRow>();
-      setSettings(data ?? null);
-    };
-    void createDefault();
-    return <div className="text-gray-500">Initializing settings...</div>;
+    return (
+      <div className="max-w-2xl space-y-4">
+        {creating ? (
+          <div className="flex flex-col items-center gap-4 py-12">
+            <Spinner />
+            <p className="text-gray-500">Initializing settings...</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-gray-600">No settings row found. Create the default settings.</p>
+            {createError && <p className="text-red-600">{createError}</p>}
+            <Button onClick={() => void createDefault()}>Create default settings</Button>
+          </>
+        )}
+      </div>
+    );
   }
 
   return (

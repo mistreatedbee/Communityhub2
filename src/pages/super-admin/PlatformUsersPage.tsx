@@ -23,6 +23,7 @@ type UserRow = {
   full_name: string | null;
   email: string | null;
   platform_role: 'user' | 'super_admin';
+  created_at: string;
 };
 
 type MembershipRow = {
@@ -47,7 +48,7 @@ export function PlatformUsersPage() {
   useEffect(() => {
     const load = async () => {
       const [{ data: userRows }, { data: memberRows }, { data: tenantRows }] = await Promise.all([
-        supabase.from('profiles').select('user_id, full_name, email, platform_role').returns<UserRow[]>(),
+        supabase.from('profiles').select('user_id, full_name, email, platform_role, created_at').returns<UserRow[]>(),
         supabase.from('organization_memberships').select('organization_id, user_id, role, status').returns<MembershipRow[]>(),
         supabase.from('organizations').select('id, name, slug').returns<TenantRow[]>()
       ]);
@@ -121,7 +122,7 @@ export function PlatformUsersPage() {
                 <TableHeader>Role</TableHeader>
                 <TableHeader>Organization</TableHeader>
                 <TableHeader>Status</TableHeader>
-                <TableHeader>Last Active</TableHeader>
+                <TableHeader>Created</TableHeader>
                 <TableHeader>Actions</TableHeader>
               </TableRow>
             </TableHead>
@@ -160,7 +161,7 @@ export function PlatformUsersPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-gray-500">
-                      -
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
                     </span>
                   </TableCell>
                   <TableCell>

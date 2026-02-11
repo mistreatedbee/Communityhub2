@@ -256,7 +256,40 @@ export function LoginPage() {
         }
       }
 
-      // No immediate navigate: useEffect will redirect when AuthContext has finished loading (session + profile).
+      // Immediate redirect: fetch profile and memberships so we don't wait for AuthContext listener.
+      if (userId) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('platform_role')
+          .eq('user_id', userId)
+          .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+        if (profileData?.platform_role === 'super_admin') {
+          navigate('/super-admin', { replace: true });
+          return;
+        }
+        const { data: memsData } = await supabase
+          .from('organization_memberships')
+          .select('organization_id, role, status')
+          .eq('user_id', userId)
+          .eq('status', 'active');
+        if (memsData?.length) {
+          const primary = memsData.sort((a, b) => (rolePriority[b.role] ?? 0) - (rolePriority[a.role] ?? 0))[0];
+          const { data: orgData } = await supabase
+            .from('organizations')
+            .select('slug')
+            .eq('id', primary.organization_id)
+            .maybeSingle<{ slug: string }>();
+          if (orgData?.slug) {
+            const adminRoles = ['owner', 'admin', 'supervisor'];
+            navigate(
+              adminRoles.includes(primary.role) ? `/c/${orgData.slug}/admin` : `/c/${orgData.slug}/app`,
+              { replace: true }
+            );
+            return;
+          }
+        }
+        navigate('/communities', { replace: true });
+      }
     } catch (err) {
       console.error('Login failed', err);
       const msg = getLoginErrorMessage(err);

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Search, User } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Dropdown } from '../ui/Dropdown';
@@ -12,6 +13,7 @@ interface TopBarProps {
   tenantSlug?: string;
 }
 export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' }: TopBarProps) {
+  const navigate = useNavigate();
   const { user, profileName, signOut, memberships } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isImpersonating, setIsImpersonating] = useState(false);
@@ -139,7 +141,10 @@ export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' 
             {
               label: 'Sign Out',
               danger: true,
-              onClick: () => void signOut()
+              onClick: async () => {
+                await signOut();
+                navigate('/login');
+              }
             }]
             } />
 

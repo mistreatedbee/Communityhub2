@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 type PlanRow = {
   id: string;
   name: string;
+  description: string;
   price_cents: number;
   billing_cycle: 'monthly' | 'yearly';
   max_members: number;
@@ -50,6 +51,7 @@ export function PlansPage() {
   const [licenseKeys, setLicenseKeys] = useState<LicenseKeyRow[]>([]);
   const [editingPlan, setEditingPlan] = useState<PlanRow | null>(null);
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [price, setPrice] = useState(0);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [maxMembers, setMaxMembers] = useState(0);
@@ -66,7 +68,7 @@ export function PlansPage() {
   const loadPlans = async () => {
     const { data } = await supabase
       .from('license_plans')
-      .select('id, name, price_cents, billing_cycle, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags')
+      .select('id, name, description, price_cents, billing_cycle, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags')
       .order('price_cents', { ascending: true })
       .returns<PlanRow[]>();
     setPlans(data ?? []);
@@ -93,6 +95,7 @@ export function PlansPage() {
     if (plan) {
       setEditingPlan(plan);
       setName(plan.name);
+      setDescription(plan.description ?? '');
       setPrice(plan.price_cents / 100);
       setBillingCycle(plan.billing_cycle);
       setMaxMembers(plan.max_members);
@@ -104,6 +107,7 @@ export function PlansPage() {
     } else {
       setEditingPlan(null);
       setName('');
+      setDescription('');
       setPrice(0);
       setBillingCycle('monthly');
       setMaxMembers(0);
@@ -132,6 +136,7 @@ export function PlansPage() {
 
     const payload = {
       name,
+      description: description.trim() || '',
       price_cents: Math.round(price * 100),
       billing_cycle: billingCycle,
       max_members: maxMembers,
@@ -146,7 +151,7 @@ export function PlansPage() {
       ? await supabase.from('license_plans').update(payload).eq('id', editingPlan.id)
       : await supabase.from('license_plans').insert(payload);
     if (error) {
-      addToast('Unable to save plan.', 'error');
+      addToast(error.message ? `Unable to save plan: ${error.message}` : 'Unable to save plan.', 'error');
       return;
     }
     await logAudit(editingPlan ? 'license_updated' : 'license_created', null, { name });
@@ -159,7 +164,7 @@ export function PlansPage() {
     if (!window.confirm('Delete this plan?')) return;
     const { error } = await supabase.from('license_plans').delete().eq('id', planId);
     if (error) {
-      addToast('Unable to delete plan.', 'error');
+      addToast(error.message ? `Unable to delete plan: ${error.message}` : 'Unable to delete plan.', 'error');
       return;
     }
     await logAudit('license_deleted', null, { plan_id: planId });
@@ -197,7 +202,7 @@ export function PlansPage() {
   const handleSuspendKey = async (id: string) => {
     const { error } = await supabase.from('licenses').update({ status: 'SUSPENDED' }).eq('id', id);
     if (error) {
-      addToast('Failed to suspend key.', 'error');
+      addToast(error.message ? `Failed to suspend key: ${error.message}` : 'Failed to suspend key.', 'error');
       return;
     }
     addToast('License suspended.', 'success');
@@ -208,7 +213,7 @@ export function PlansPage() {
     if (!window.confirm('Revoke this license key? It cannot be used or reverted.')) return;
     const { error } = await supabase.from('licenses').update({ status: 'EXPIRED' }).eq('id', id);
     if (error) {
-      addToast('Failed to revoke key.', 'error');
+      addToast(error.message ? `Failed to revoke key: ${error.message}` : 'Failed to revoke key.', 'error');
       return;
     }
     addToast('License revoked.', 'success');
@@ -437,7 +442,7 @@ export function PlansPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Create New Plan"
+        title={editingPlan ? 'Edit Plan' : 'Create New Plan'}
         footer={
         <>
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
@@ -452,6 +457,16 @@ export function PlansPage() {
 
         <div className="space-y-4">
           <Input label="Plan Name" placeholder="e.g. Business" value={name} onChange={(e) => setName(e.target.value)} />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              rows={2}
+              className="w-full rounded-lg border border-gray-300 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] p-2"
+              placeholder="Short description of the plan"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Price" type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
             <div>

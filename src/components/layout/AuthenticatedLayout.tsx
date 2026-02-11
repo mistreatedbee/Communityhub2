@@ -32,6 +32,12 @@ export function AuthenticatedLayout({ variant, tenantSlug, tenantName, tenantId 
           <Outlet />
         </div>
       </main>
+      <footer className="border-t border-gray-200 bg-white py-4 px-8 text-sm text-gray-500" style={{ marginLeft: isSidebarCollapsed ? '5rem' : '16rem' }}>
+        <div className="max-w-7xl mx-auto flex flex-wrap gap-x-6 gap-y-1">
+          <a href="mailto:ashleymashigo013@gmail.com" className="hover:text-[var(--color-primary)]">ashleymashigo013@gmail.com</a>
+          <a href="https://wa.me/27731531188" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--color-primary)]">WhatsApp: 073 153 1188</a>
+        </div>
+      </footer>
     </div>);
 
 }

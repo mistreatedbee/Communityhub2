@@ -5,8 +5,9 @@ import {
   Twitter,
   Instagram,
   Linkedin,
-  Mail } from
-'lucide-react';
+  Mail,
+  MessageCircle
+} from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 export function Footer() {
   const { organization } = useTheme();
@@ -119,7 +120,20 @@ export function Footer() {
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-sm text-gray-500">
                 <Mail className="w-5 h-5 text-[var(--color-primary)] shrink-0" />
-                <span>{organization.contactEmail ?? 'support@communityhub.local'}</span>
+                <a href="mailto:ashleymashigo013@gmail.com" className="hover:text-[var(--color-primary)]">
+                  ashleymashigo013@gmail.com
+                </a>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-gray-500">
+                <MessageCircle className="w-5 h-5 text-[var(--color-primary)] shrink-0" />
+                <a
+                  href="https://wa.me/27731531188"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[var(--color-primary)]"
+                >
+                  WhatsApp: 073 153 1188
+                </a>
               </li>
             </ul>
           </div>

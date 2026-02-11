@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Calendar,
@@ -32,6 +32,7 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '', tenantName }: SidebarProps) {
   const { organization } = useTheme();
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const isSuperAdminRoute = variant === 'super-admin';
   const tenantBase = tenantSlug ? `/c/${tenantSlug}` : '/communities';
@@ -263,7 +264,10 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
             w-full flex items-center gap-3 px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors
             ${isCollapsed ? 'justify-center' : ''}
           `}
-            onClick={() => void signOut()}>
+            onClick={async () => {
+              await signOut();
+              navigate('/login');
+            }}>
 
             <LogOut className="w-5 h-5" />
             {!isCollapsed &&

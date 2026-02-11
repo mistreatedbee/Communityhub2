@@ -91,7 +91,7 @@ export function OrganizationsPage() {
   const handleStatusChange = async (id: string, newStatus: 'active' | 'suspended') => {
     const { error } = await supabase.from('organizations').update({ status: newStatus }).eq('id', id);
     if (error) {
-      addToast('Unable to update status.', 'error');
+      addToast(error.message ? `Unable to update status: ${error.message}` : 'Unable to update status.', 'error');
       return;
     }
     await logAudit('tenant_status_changed', id, { status: newStatus });
@@ -103,7 +103,7 @@ export function OrganizationsPage() {
     if (!window.confirm('Are you sure you want to delete this tenant?')) return;
     const { error } = await supabase.from('organizations').delete().eq('id', id);
     if (error) {
-      addToast('Unable to delete tenant.', 'error');
+      addToast(error.message ? `Unable to delete tenant: ${error.message}` : 'Unable to delete tenant.', 'error');
       return;
     }
     await logAudit('tenant_deleted', id, {});
@@ -112,39 +112,69 @@ export function OrganizationsPage() {
   };
 
   const handleCreate = async () => {
-    if (!name.trim() || !slug.trim() || !adminEmail.trim()) {
+    const trimmedName = name.trim();
+    const trimmedSlug = slug.trim().toLowerCase();
+    const trimmedEmail = adminEmail.trim().toLowerCase();
+    if (!trimmedName || !trimmedSlug || !trimmedEmail) {
       addToast('Name, slug, and admin email are required.', 'error');
       return;
     }
-    const { data: tenantData, error } = await supabase
+    const { data: tenantData, error: orgError } = await supabase
       .from('organizations')
       .insert({
-        name,
-        slug,
+        name: trimmedName,
+        slug: trimmedSlug,
         status: 'active'
       })
       .select('id')
       .maybeSingle<{ id: string }>();
-    if (error || !tenantData) {
-      addToast('Unable to create tenant.', 'error');
+    if (orgError || !tenantData) {
+      addToast(orgError?.message ? `Unable to create tenant: ${orgError.message}` : 'Unable to create tenant.', 'error');
       return;
     }
-    await supabase.from('organization_licenses').insert({
+    const { error: licenseError } = await supabase.from('organization_licenses').insert({
       organization_id: tenantData.id,
       license_id: planId,
       status: 'trial'
     });
-    await supabase.from('tenant_settings').insert({
+    if (licenseError) {
+      addToast(licenseError.message ? `License assignment failed: ${licenseError.message}` : 'License assignment failed.', 'error');
+      await loadData();
+      return;
+    }
+    const { error: settingsError } = await supabase.from('tenant_settings').insert({
       organization_id: tenantData.id
     });
-    await supabase.from('invitations').insert({
+    if (settingsError) {
+      addToast(settingsError.message ? `Tenant settings failed: ${settingsError.message}` : 'Tenant settings failed.', 'error');
+    }
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('email', trimmedEmail)
+      .maybeSingle<{ user_id: string }>();
+    if (existingProfile?.user_id) {
+      const { error: memberError } = await supabase.from('organization_memberships').insert({
+        organization_id: tenantData.id,
+        user_id: existingProfile.user_id,
+        role: 'owner',
+        status: 'active'
+      });
+      if (memberError) {
+        addToast(memberError.message ? `Owner membership failed: ${memberError.message}` : 'Owner membership failed.', 'error');
+      }
+    }
+    const { error: invError } = await supabase.from('invitations').insert({
       organization_id: tenantData.id,
-      email: adminEmail,
-      role: 'admin',
+      email: trimmedEmail,
+      role: existingProfile?.user_id ? 'owner' : 'admin',
       token: crypto.randomUUID(),
       expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString()
     });
-    await logAudit('tenant_created', tenantData.id, { name, slug, planId });
+    if (invError) {
+      addToast(invError.message ? `Invitation failed: ${invError.message}` : 'Invitation failed.', 'error');
+    }
+    await logAudit('tenant_created', tenantData.id, { name: trimmedName, slug: trimmedSlug, planId });
     addToast('Tenant created.', 'success');
     setIsCreateModalOpen(false);
     setName('');

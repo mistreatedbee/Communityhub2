@@ -20,7 +20,14 @@ export function PricingPage() {
             <li>Posts, resources, groups, events, programs</li>
             <li>Audit logs and approvals</li>
           </ul>
-          <Button className="mt-auto w-full">Contact Sales</Button>
+          <a
+            href="https://wa.me/27731531188?text=Hi%2C%20I'm%20interested%20in%20a%20Community%20Hub%20license."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-auto w-full"
+          >
+            <Button className="w-full">Contact Sales</Button>
+          </a>
         </div>
       </div>
     </div>

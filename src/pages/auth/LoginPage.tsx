@@ -37,6 +37,11 @@ export function LoginPage() {
   const { addToast } = useToast();
   const redirectPath = (location.state as { from?: string } | null)?.from ?? '/communities';
 
+  // Clear any stale post-login redirect when user is signed out (e.g. after sign out, then opening login again).
+  useEffect(() => {
+    if (!user && !authLoading) setPostLoginRedirect(null);
+  }, [user, authLoading]);
+
   // Single source of redirect: wait for AuthContext to finish loading so session + profile (platformRole) are set.
   useEffect(() => {
     if (authLoading || !user) return;

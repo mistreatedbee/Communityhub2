@@ -123,6 +123,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+      if (event === 'SIGNED_OUT') {
+        if (mounted) {
+          setLoading(true);
+          setSession(null);
+          setUser(null);
+          setRole(null);
+          setOrganizationId(null);
+          setProfileName(null);
+          setPlatformRole('user');
+          setMemberships([]);
+          setLoading(false);
+        }
+        return;
+      }
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (mounted) setLoading(true);
       }
@@ -155,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profileName,
       signOut: async () => {
         clearImpersonation();
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
       }
     }),
     [loading, organizationId, platformRole, memberships, profileName, role, session, user]

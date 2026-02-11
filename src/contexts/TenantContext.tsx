@@ -82,6 +82,9 @@ export function TenantProvider({ tenantSlug, children }: { tenantSlug: string; c
       .maybeSingle<Tenant>();
 
     if (orgError || !orgData) {
+      if (orgError) {
+        console.error('[TenantContext] Org fetch failed', orgError.code, orgError.message, { tenantSlug });
+      }
       setTenant(null);
       setLoading(false);
       setError(orgError?.message ?? 'Tenant not found');
@@ -108,14 +111,17 @@ export function TenantProvider({ tenantSlug, children }: { tenantSlug: string; c
       supabase
         .from('organization_licenses')
         .select(
-          'status, starts_at, ends_at, limits_snapshot, license:licenses(id, name, code, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags)'
+          'status, starts_at, ends_at, limits_snapshot, license_plan:license_plans(id, name, code, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags)'
         )
         .eq('organization_id', orgData.id)
         .maybeSingle<TenantLicense>()
     ]);
 
     setSettings(settingsData ?? { public_signup: true, approval_required: false, registration_fields_enabled: true });
-    setLicense(licenseData ?? null);
+    const licenseMapped = licenseData
+      ? { ...licenseData, license: (licenseData as { license_plan?: TenantLicense['license'] }).license_plan ?? licenseData.license }
+      : null;
+    setLicense(licenseMapped ?? null);
 
     if (platformRole === 'super_admin') {
       const impersonation = getImpersonation();

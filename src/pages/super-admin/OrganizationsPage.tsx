@@ -34,7 +34,7 @@ type TenantRow = {
   created_at: string;
   organization_licenses: {
     status: 'trial' | 'active' | 'expired' | 'cancelled';
-    license: { id: string; name: string } | null;
+    license_plan: { id: string; name: string } | null;
   }[];
 };
 
@@ -65,7 +65,7 @@ export function OrganizationsPage() {
     const [{ data: orgRows }, { data: memberRows }, { data: planRows }] = await Promise.all([
       supabase
         .from('organizations')
-        .select('id, name, slug, status, created_at, organization_licenses(status, license:licenses(id, name))')
+        .select('id, name, slug, status, created_at, organization_licenses(status, license_plan:license_plans(id, name))')
         .order('created_at', { ascending: false })
         .returns<TenantRow[]>(),
       supabase
@@ -73,7 +73,7 @@ export function OrganizationsPage() {
         .select('organization_id, role, status')
         .returns<MembershipRow[]>(),
       supabase
-        .from('licenses')
+        .from('license_plans')
         .select('id, name')
         .order('price_cents', { ascending: true })
         .returns<LicenseRow[]>()
@@ -214,7 +214,7 @@ export function OrganizationsPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{org.organization_licenses?.[0]?.license?.name ?? 'No plan'}</TableCell>
+                  <TableCell>{org.organization_licenses?.[0]?.license_plan?.name ?? 'No plan'}</TableCell>
                   <TableCell>
                     <Badge
                     variant={

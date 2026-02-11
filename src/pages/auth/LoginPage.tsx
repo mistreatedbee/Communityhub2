@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Lock, Mail } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -6,20 +6,23 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../components/ui/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { getSafeErrorMessage } from '../../utils/errors';
 import {
   clearPendingTenantBootstrap,
   clearPendingTenantJoin,
   getPendingTenantBootstrap,
   getPendingTenantJoin
 } from '../../utils/pendingAuthIntents';
+import { hasLicenseSession } from '../../utils/licenseToken';
+import { getSafeErrorMessage } from '../../utils/errors';
 
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { organization } = useTheme();
+  const { user, loading: authLoading } = useAuth();
   const rolePriority: Record<string, number> = {
     owner: 4,
     admin: 3,
@@ -32,6 +35,12 @@ export function LoginPage() {
   const { addToast } = useToast();
   const redirectPath = (location.state as { from?: string } | null)?.from ?? '/communities';
 
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/communities', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
   const withTimeout = async <T,>(promise: Promise<T>, label: string) => {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`${label} timeout`)), 10000)
@@ -39,15 +48,34 @@ export function LoginPage() {
     return Promise.race([promise, timeout]);
   };
 
+  const getLoginErrorMessage = (error: unknown) => {
+    const message =
+      typeof error === 'object' && error && 'message' in error && typeof error.message === 'string'
+        ? error.message
+        : '';
+
+    if (!message) {
+      return 'Unable to sign in. Please check your credentials.';
+    }
+    if (/email not confirmed/i.test(message)) {
+      return 'Your email is not verified yet. Check your inbox, confirm your account, then sign in again.';
+    }
+    if (/invalid login credentials/i.test(message)) {
+      return 'Incorrect email or password.';
+    }
+    return message;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const signInResult = await supabase.auth.signInWithPassword({ email, password });
+      const normalizedEmail = email.trim().toLowerCase();
+      const signInResult = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
       const { data, error } = signInResult;
       if (error) {
-        addToast(getSafeErrorMessage(error, 'Unable to sign in. Please check your credentials.'), 'error');
+        addToast(getLoginErrorMessage(error), 'error');
         return;
       }
 
@@ -62,7 +90,7 @@ export function LoginPage() {
         navigate('/communities');
         return;
       }
-      const userEmail = data.user?.email ?? '';
+      const userEmail = (data.user?.email ?? normalizedEmail).trim().toLowerCase();
 
       const pendingBootstrap = getPendingTenantBootstrap(userEmail);
       if (pendingBootstrap) {
@@ -163,11 +191,14 @@ export function LoginPage() {
         const primary = memberships.sort(
           (a, b) => (rolePriority[b.role] ?? 0) - (rolePriority[a.role] ?? 0)
         )[0];
-        const { data: org } = await supabase
+        const { data: org, error: orgError } = await supabase
           .from('organizations')
           .select('slug')
           .eq('id', primary.organization_id)
           .maybeSingle<{ slug: string }>();
+        if (orgError) {
+          console.error('Login org lookup failed', orgError);
+        }
         if (org?.slug) {
           const adminRoles = ['owner', 'admin', 'supervisor'];
           navigate(
@@ -179,6 +210,10 @@ export function LoginPage() {
         }
       }
 
+      if (hasLicenseSession()) {
+        navigate('/setup-community', { replace: true });
+        return;
+      }
       navigate('/communities');
     } catch (error) {
       console.error('Login failed', error);
@@ -200,7 +235,7 @@ export function LoginPage() {
         <h2 className="text-3xl font-bold tracking-tight text-gray-900">Welcome back</h2>
         <p className="mt-2 text-sm text-gray-600">
           Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">
+          <Link to="/enter-license" className="font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">
             Create a tenant
           </Link>
         </p>

@@ -24,7 +24,7 @@ export function HomePage() {
               Explore Communities
             </Button>
           </Link>
-          <Link to="/register">
+          <Link to="/enter-license">
             <Button size="lg" variant="outline">
               Start a Community
             </Button>

@@ -36,11 +36,11 @@ export function SuperAdminDashboardPage() {
           supabase.from('profiles').select('user_id', { count: 'exact', head: true }),
           supabase
             .from('organization_licenses')
-            .select('status, license:licenses(price_cents)')
-            .eq('status', 'active'),
+            .select('status, license_plan:license_plans(price_cents)')
+            .in('status', ['active', 'trial']),
           supabase
             .from('organizations')
-            .select('id, name, created_at, organization_licenses(status, license:licenses(id, name))')
+            .select('id, name, created_at, organization_licenses(status, license_plan:license_plans(id, name))')
             .order('created_at', { ascending: false })
             .limit(5)
         ]);
@@ -50,7 +50,7 @@ export function SuperAdminDashboardPage() {
       const active = (licenseRows ?? []).length;
       setActiveLicenses(active);
       const revenue = (licenseRows ?? []).reduce((sum, row) => {
-        const price = (row as any).license?.price_cents ?? 0;
+        const price = (row as any).license_plan?.price_cents ?? 0;
         return sum + price;
       }, 0);
       setMonthlyRevenue(revenue / 100);
@@ -60,8 +60,8 @@ export function SuperAdminDashboardPage() {
         name: row.name,
         primaryColor: '#3B82F6',
         secondaryColor: '#10B981',
-        planId: row.organization_licenses?.[0]?.license?.id ?? '',
-        planName: row.organization_licenses?.[0]?.license?.name ?? 'No plan',
+        planId: row.organization_licenses?.[0]?.license_plan?.id ?? '',
+        planName: row.organization_licenses?.[0]?.license_plan?.name ?? 'No plan',
         status: row.organization_licenses?.[0]?.status ?? 'trial',
         createdAt: row.created_at,
         adminCount: 0,

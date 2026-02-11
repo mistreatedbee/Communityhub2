@@ -15,8 +15,8 @@ export function SystemAnalyticsPage() {
       const [{ data: licenses }, { count: activeCount }, { count: userCount }] = await Promise.all([
         supabase
           .from('organization_licenses')
-          .select('status, license:licenses(name, price_cents)')
-          .eq('status', 'active'),
+          .select('status, license_plan:license_plans(name, price_cents)')
+          .in('status', ['active', 'trial']),
         supabase
           .from('organizations')
           .select('id', { count: 'exact', head: true })
@@ -25,15 +25,15 @@ export function SystemAnalyticsPage() {
       ]);
 
       const activeLicenses = licenses ?? [];
-      const revenue = activeLicenses.reduce((sum, row: any) => sum + (row.license?.price_cents ?? 0), 0);
+      const revenue = activeLicenses.reduce((sum, row: any) => sum + (row.license_plan?.price_cents ?? 0), 0);
       setMrr(revenue / 100);
       setTotalRevenue(revenue / 100);
       setActiveTenants(activeCount ?? 0);
       setTotalUsers(userCount ?? 0);
 
       const breakdown = activeLicenses.reduce<Record<string, number>>((acc, row: any) => {
-        const name = row.license?.name ?? 'Unknown';
-        acc[name] = (acc[name] ?? 0) + (row.license?.price_cents ?? 0);
+        const name = row.license_plan?.name ?? 'Unknown';
+        acc[name] = (acc[name] ?? 0) + (row.license_plan?.price_cents ?? 0);
         return acc;
       }, {});
       setPlanBreakdown(breakdown);

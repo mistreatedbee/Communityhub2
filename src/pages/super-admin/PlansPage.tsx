@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Check, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Check, Edit2, Trash2, KeyRound, Ban, RotateCcw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -8,6 +9,7 @@ import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
 import { supabase } from '../../lib/supabase';
 import { logAudit } from '../../utils/audit';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 
 type PlanRow = {
   id: string;
@@ -21,10 +23,31 @@ type PlanRow = {
   max_resources: number;
   feature_flags: Record<string, boolean>;
 };
+
+type LicenseKeyRow = {
+  id: string;
+  key: string;
+  plan_id: string;
+  status: string;
+  expires_at: string | null;
+  single_use: boolean;
+  claimed_at: string | null;
+  claimed_tenant_id: string | null;
+  license_plans: { name: string } | null;
+  organizations: { id: string; name: string; slug: string } | null;
+};
+
+function generateLicenseKey(): string {
+  const segment = () => Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `CH-${segment()}-${segment()}-${segment()}-${segment()}`;
+}
+
 export function PlansPage() {
   const { addToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [plans, setPlans] = useState<PlanRow[]>([]);
+  const [licenseKeys, setLicenseKeys] = useState<LicenseKeyRow[]>([]);
   const [editingPlan, setEditingPlan] = useState<PlanRow | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState(0);
@@ -35,18 +58,35 @@ export function PlansPage() {
   const [maxPosts, setMaxPosts] = useState(0);
   const [maxResources, setMaxResources] = useState(0);
   const [features, setFeatures] = useState('');
+  const [generatePlanId, setGeneratePlanId] = useState('');
+  const [generateExpiry, setGenerateExpiry] = useState('');
+  const [generateSingleUse, setGenerateSingleUse] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   const loadPlans = async () => {
     const { data } = await supabase
-      .from('licenses')
+      .from('license_plans')
       .select('id, name, price_cents, billing_cycle, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags')
       .order('price_cents', { ascending: true })
       .returns<PlanRow[]>();
     setPlans(data ?? []);
   };
 
+  const loadLicenseKeys = async () => {
+    const { data } = await supabase
+      .from('licenses')
+      .select('id, key, plan_id, status, expires_at, single_use, claimed_at, claimed_tenant_id, license_plans(name), organizations(id, name, slug)')
+      .order('created_at', { ascending: false })
+      .returns<LicenseKeyRow[]>();
+    setLicenseKeys(data ?? []);
+  };
+
   useEffect(() => {
     void loadPlans();
+  }, []);
+
+  useEffect(() => {
+    void loadLicenseKeys();
   }, []);
 
   const openModal = (plan?: PlanRow) => {
@@ -103,8 +143,8 @@ export function PlansPage() {
     };
 
     const { error } = editingPlan
-      ? await supabase.from('licenses').update(payload).eq('id', editingPlan.id)
-      : await supabase.from('licenses').insert(payload);
+      ? await supabase.from('license_plans').update(payload).eq('id', editingPlan.id)
+      : await supabase.from('license_plans').insert(payload);
     if (error) {
       addToast('Unable to save plan.', 'error');
       return;
@@ -117,7 +157,7 @@ export function PlansPage() {
 
   const handleDelete = async (planId: string) => {
     if (!window.confirm('Delete this plan?')) return;
-    const { error } = await supabase.from('licenses').delete().eq('id', planId);
+    const { error } = await supabase.from('license_plans').delete().eq('id', planId);
     if (error) {
       addToast('Unable to delete plan.', 'error');
       return;
@@ -125,6 +165,59 @@ export function PlansPage() {
     await logAudit('license_deleted', null, { plan_id: planId });
     addToast('Plan deleted.', 'success');
     await loadPlans();
+  };
+
+  const handleGenerateKey = async () => {
+    if (!generatePlanId) {
+      addToast('Select a plan.', 'error');
+      return;
+    }
+    setGenerating(true);
+    const key = generateLicenseKey();
+    const { error } = await supabase.from('licenses').insert({
+      key,
+      plan_id: generatePlanId,
+      status: 'ACTIVE',
+      single_use: generateSingleUse,
+      expires_at: generateExpiry ? new Date(generateExpiry).toISOString() : null
+    });
+    setGenerating(false);
+    if (error) {
+      addToast(error.message ?? 'Failed to generate key.', 'error');
+      return;
+    }
+    addToast(`License key created: ${key}. Copy it now; it won't be shown again in full.`, 'success');
+    setIsKeyModalOpen(false);
+    setGeneratePlanId('');
+    setGenerateExpiry('');
+    setGenerateSingleUse(true);
+    await loadLicenseKeys();
+  };
+
+  const handleSuspendKey = async (id: string) => {
+    const { error } = await supabase.from('licenses').update({ status: 'SUSPENDED' }).eq('id', id);
+    if (error) {
+      addToast('Failed to suspend key.', 'error');
+      return;
+    }
+    addToast('License suspended.', 'success');
+    await loadLicenseKeys();
+  };
+
+  const handleRevokeKey = async (id: string) => {
+    if (!window.confirm('Revoke this license key? It cannot be used or reverted.')) return;
+    const { error } = await supabase.from('licenses').update({ status: 'EXPIRED' }).eq('id', id);
+    if (error) {
+      addToast('Failed to revoke key.', 'error');
+      return;
+    }
+    addToast('License revoked.', 'success');
+    await loadLicenseKeys();
+  };
+
+  const maskKey = (key: string) => {
+    if (!key || key.length < 8) return '****';
+    return key.slice(0, 4) + '-****-****-' + key.slice(-4);
   };
 
   return (
@@ -199,6 +292,147 @@ export function PlansPage() {
           </Card>
         )}
       </div>
+
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">License keys</h2>
+            <p className="text-gray-500 text-sm">Generate keys for new tenants. View claimed tenants and suspend or revoke keys.</p>
+          </div>
+          <Button leftIcon={<KeyRound className="w-4 h-4" />} onClick={() => setIsKeyModalOpen(true)}>
+            Generate key
+          </Button>
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Key</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Expires</TableHead>
+                <TableHead>Single use</TableHead>
+                <TableHead>Claimed tenant</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {licenseKeys.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                    No license keys yet. Generate one to let new tenants sign up.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                licenseKeys.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-mono text-sm">{maskKey(row.key)}</TableCell>
+                    <TableCell>{row.license_plans?.name ?? '-'}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          row.status === 'ACTIVE' ? 'success' : row.status === 'CLAIMED' ? 'default' : 'error'
+                        }
+                      >
+                        {row.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{row.expires_at ? new Date(row.expires_at).toLocaleDateString() : 'Never'}</TableCell>
+                    <TableCell>{row.single_use ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>
+                      {row.claimed_tenant_id && row.organizations ? (
+                        <Link
+                          to={`/super-admin/tenants/${row.claimed_tenant_id}`}
+                          className="text-[var(--color-primary)] hover:underline"
+                        >
+                          {row.organizations.name} ({row.organizations.slug})
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {row.status === 'ACTIVE' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          leftIcon={<Ban className="w-4 h-4" />}
+                          onClick={() => handleSuspendKey(row.id)}
+                        >
+                          Suspend
+                        </Button>
+                      )}
+                      {(row.status === 'ACTIVE' || row.status === 'SUSPENDED') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600"
+                          leftIcon={<RotateCcw className="w-4 h-4" />}
+                          onClick={() => handleRevokeKey(row.id)}
+                        >
+                          Revoke
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      <Modal
+        isOpen={isKeyModalOpen}
+        onClose={() => setIsKeyModalOpen(false)}
+        title="Generate license key"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setIsKeyModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleGenerateKey()} isLoading={generating}>
+              Generate key
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+            <select
+              className="w-full rounded-lg border border-gray-300 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] p-2"
+              value={generatePlanId}
+              onChange={(e) => setGeneratePlanId(e.target.value)}
+            >
+              <option value="">Select a plan</option>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Input
+            label="Expires at (optional)"
+            type="datetime-local"
+            value={generateExpiry}
+            onChange={(e) => setGenerateExpiry(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="single-use"
+              checked={generateSingleUse}
+              onChange={(e) => setGenerateSingleUse(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <label htmlFor="single-use" className="text-sm text-gray-700">
+              Single use (recommended)
+            </label>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}

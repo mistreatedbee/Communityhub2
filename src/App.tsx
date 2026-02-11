@@ -23,7 +23,9 @@ import { TenantJoinPage } from './pages/public/TenantJoinPage';
 import { PricingPage } from './pages/public/PricingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
-import { TenantAdminRegisterPage } from './pages/auth/TenantAdminRegisterPage';
+import { EnterLicensePage } from './pages/auth/EnterLicensePage';
+import { SignupPage } from './pages/auth/SignupPage';
+import { SetupCommunityPage } from './pages/auth/SetupCommunityPage';
 import { TenantMemberFeedPage } from './pages/tenant-member/TenantMemberFeedPage';
 import { TenantMemberAnnouncementsPage } from './pages/tenant-member/TenantMemberAnnouncementsPage';
 import { TenantMemberResourcesPage } from './pages/tenant-member/TenantMemberResourcesPage';
@@ -73,7 +75,10 @@ export function App() {
               </Route>
 
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<TenantAdminRegisterPage />} />
+              <Route path="/enter-license" element={<EnterLicensePage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/setup-community" element={<SetupCommunityPage />} />
+              <Route path="/register" element={<Navigate to="/enter-license" replace />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
               <Route element={<TenantRouteProvider />}>

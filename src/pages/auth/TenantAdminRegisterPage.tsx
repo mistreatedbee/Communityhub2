@@ -35,7 +35,7 @@ export function TenantAdminRegisterPage() {
   useEffect(() => {
     const load = async () => {
       const { data, error } = await supabase
-        .from('licenses')
+        .from('license_plans')
         .select('id, name')
         .order('price_cents', { ascending: true })
         .returns<PlanRow[]>();

@@ -75,7 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const [{ data: profileData }, { data: membershipsData }] = await Promise.all([
+      const [
+        { data: profileData, error: profileError },
+        { data: membershipsData, error: membershipsError }
+      ] = await Promise.all([
         supabase
           .from('profiles')
           .select('user_id, full_name, platform_role')
@@ -88,6 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .returns<Membership[]>()
       ]);
 
+      if (profileError) {
+        console.error('[AuthContext] Profile fetch failed', profileError.code, profileError.message);
+      }
+      if (membershipsError) {
+        console.error('[AuthContext] Memberships fetch failed', membershipsError.code, membershipsError.message);
+      }
       if (!mounted) return;
 
       const memberships = membershipsData ?? [];

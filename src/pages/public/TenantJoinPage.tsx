@@ -93,10 +93,10 @@ export function TenantJoinPage() {
       .eq('status', 'active');
     const { data: licenseRow } = await supabase
       .from('organization_licenses')
-      .select('license:licenses(max_members)')
+      .select('license_plan:license_plans(max_members)')
       .eq('organization_id', tenant.id)
-      .maybeSingle<{ license: { max_members: number } }>();
-    if (licenseRow?.license?.max_members && (activeCount ?? 0) >= licenseRow.license.max_members) {
+      .maybeSingle<{ license_plan: { max_members: number } }>();
+    if (licenseRow?.license_plan?.max_members && (activeCount ?? 0) >= licenseRow.license_plan.max_members) {
       addToast('This community has reached its member limit.', 'error');
       setIsSubmitting(false);
       return;

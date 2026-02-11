@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { KeyRound } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../components/ui/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { setLicenseToken } from '../../utils/licenseToken';
 
@@ -21,8 +22,17 @@ export function EnterLicensePage() {
   const [licenseKey, setLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
   const { organization } = useTheme();
+  const { user, loading: authLoading, platformRole } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
+
+  // Super admins log in with email/password only – no license needed
+  useEffect(() => {
+    if (authLoading || !user) return;
+    if (platformRole === 'super_admin') {
+      navigate('/super-admin', { replace: true });
+    }
+  }, [authLoading, user, platformRole, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +82,9 @@ export function EnterLicensePage() {
         <h2 className="text-3xl font-bold tracking-tight text-gray-900">Enter your license key</h2>
         <p className="mt-2 text-sm text-gray-600">
           You need a valid license to create a community. Enter the key you received below.
+        </p>
+        <p className="mt-1 text-sm text-gray-500">
+          Super admins: <Link to="/login" className="font-medium text-[var(--color-primary)]">Sign in</Link> with email and password — no license required.
         </p>
       </div>
 

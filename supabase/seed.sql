@@ -1,5 +1,9 @@
 -- Seed data for local/demo environments only.
 -- Insert demo tenants and settings. Do NOT run in production.
+--
+-- Super admin: Log in with email + password only (no license).
+-- 1. Sign up at /login with superadmin_Hil0ph@example.com (or use Dashboard → Auth → Users).
+-- 2. Run: update public.profiles set platform_role = 'super_admin' where email = 'superadmin_Hil0ph@example.com';
 
 insert into public.organizations (name, slug, status, is_public, description, category, location)
 values

@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profileName,
       signOut: async () => {
         clearImpersonation();
-        await supabase.auth.signOut({ scope: 'local' });
+        await supabase.auth.signOut();
       }
     }),
     [loading, organizationId, platformRole, memberships, profileName, role, session, user]

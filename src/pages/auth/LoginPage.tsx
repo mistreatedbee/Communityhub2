@@ -23,6 +23,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [postLoginRedirect, setPostLoginRedirect] = useState<string | null>(null);
+  const [loginSuccessAt, setLoginSuccessAt] = useState<number | null>(null);
   const { organization } = useTheme();
   const { user, loading: authLoading, session, platformRole, memberships } = useAuth();
   const rolePriority: Record<string, number> = {
@@ -42,9 +43,54 @@ export function LoginPage() {
     if (!user && !authLoading) setPostLoginRedirect(null);
   }, [user, authLoading]);
 
+  // Fallback: if auth listener never fires after login, redirect once we have session (e.g. after sign-out/login edge cases).
+  useEffect(() => {
+    if (loginSuccessAt == null || user != null) return;
+    const t = setTimeout(async () => {
+      if (location.pathname !== '/login') return;
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.user) return;
+      setLoginSuccessAt(null);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('platform_role')
+        .eq('user_id', data.session.user.id)
+        .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+      if (profile?.platform_role === 'super_admin') {
+        navigate('/super-admin', { replace: true });
+        return;
+      }
+      const { data: mems } = await supabase
+        .from('organization_memberships')
+        .select('organization_id, role, status')
+        .eq('user_id', data.session.user.id)
+        .eq('status', 'active');
+      if (mems?.length) {
+        const primary = mems.sort((a, b) => (rolePriority[b.role] ?? 0) - (rolePriority[a.role] ?? 0))[0];
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('slug')
+          .eq('id', primary.organization_id)
+          .maybeSingle<{ slug: string }>();
+        if (org?.slug) {
+          const adminRoles = ['owner', 'admin', 'supervisor'];
+          navigate(
+            adminRoles.includes(primary.role) ? `/c/${org.slug}/admin` : `/c/${org.slug}/app`,
+            { replace: true }
+          );
+          return;
+        }
+      }
+      navigate('/communities', { replace: true });
+    }, 3500);
+    return () => clearTimeout(t);
+  }, [loginSuccessAt, user, location.pathname, navigate]);
+
   // Single source of redirect: wait for AuthContext to finish loading so session + profile (platformRole) are set.
   useEffect(() => {
     if (authLoading || !user) return;
+
+    setLoginSuccessAt(null);
 
     if (postLoginRedirect) {
       navigate(postLoginRedirect, { replace: true });
@@ -142,6 +188,7 @@ export function LoginPage() {
       }
 
       addToast('Successfully logged in!', 'success');
+      setLoginSuccessAt(Date.now());
 
       const userId = data.user?.id;
       const userEmail = (data.user?.email ?? normalizedEmail).trim().toLowerCase();

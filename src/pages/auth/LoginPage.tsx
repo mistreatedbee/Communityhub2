@@ -123,6 +123,18 @@ export function LoginPage() {
         navigate('/communities');
         return;
       }
+
+      // Check super_admin first – always redirect to correct dashboard
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('platform_role')
+        .eq('user_id', userId)
+        .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+      if (profileRow?.platform_role === 'super_admin') {
+        navigate('/super-admin', { replace: true });
+        return;
+      }
+
       const userEmail = (data.user?.email ?? normalizedEmail).trim().toLowerCase();
 
       const pendingBootstrap = getPendingTenantBootstrap(userEmail);

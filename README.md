@@ -16,7 +16,12 @@ A professional community management platform for South African organizations.
   update public.profiles set platform_role = 'super_admin' where email = 'your@email.com';
   ```
 
-  Then log in again; you will be redirected to `/super-admin`.
+  Replace `your@email.com` with your actual email. Then log out and log in again; you will be redirected to `/super-admin`.
+
+### Vercel deployment
+
+- **Root Directory:** Leave empty (code is at repo root).
+- **Environment variables:** Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel project settings.
 
 ## Architecture Overview
 

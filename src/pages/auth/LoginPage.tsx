@@ -142,11 +142,16 @@ export function LoginPage() {
       }
 
       // Check super_admin first – always redirect to correct dashboard
-      const { data: profileRow } = await supabase
+      const { data: profileRow, error: profileError } = await supabase
         .from('profiles')
         .select('platform_role')
         .eq('user_id', userId)
         .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+
+      if (profileError) {
+        console.error('[Login] Profile fetch failed', profileError);
+      }
+
       if (profileRow?.platform_role === 'super_admin') {
         navigate('/super-admin', { replace: true });
         return;

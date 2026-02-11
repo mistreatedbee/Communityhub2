@@ -5,6 +5,17 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "rewrites": [
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/signup", "destination": "/index.html" },
+    { "source": "/enter-license", "destination": "/index.html" },
+    { "source": "/setup-community", "destination": "/index.html" },
+    { "source": "/forgot-password", "destination": "/index.html" },
+    { "source": "/communities", "destination": "/index.html" },
+    { "source": "/pricing", "destination": "/index.html" },
+    { "source": "/register", "destination": "/index.html" },
+    { "source": "/super-admin", "destination": "/index.html" },
+    { "source": "/super-admin/:path*", "destination": "/index.html" },
+    { "source": "/c/:path*", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

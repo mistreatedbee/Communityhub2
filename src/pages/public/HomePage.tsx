@@ -1,11 +1,61 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Shield, Users, Sparkles } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { hasLicenseSession } from '../../utils/licenseToken';
+import { supabase } from '../../lib/supabase';
+
+const rolePriority: Record<string, number> = {
+  owner: 4,
+  admin: 3,
+  supervisor: 2,
+  employee: 1,
+  member: 0
+};
 
 export function HomePage() {
   const { organization } = useTheme();
+  const { user, loading, platformRole, memberships } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (loading || !user) return;
+
+    if (platformRole === 'super_admin') {
+      navigate('/super-admin', { replace: true });
+      return;
+    }
+    const activeMemberships = memberships.filter((m) => m.status === 'active');
+    if (activeMemberships.length > 0) {
+      const primary = activeMemberships.sort(
+        (a, b) => (rolePriority[b.role] ?? 0) - (rolePriority[a.role] ?? 0)
+      )[0];
+      supabase
+        .from('organizations')
+        .select('slug')
+        .eq('id', primary.organization_id)
+        .maybeSingle<{ slug: string }>()
+        .then(({ data }) => {
+          if (data?.slug) {
+            const adminRoles = ['owner', 'admin', 'supervisor'];
+            navigate(
+              adminRoles.includes(primary.role)
+                ? `/c/${data.slug}/admin`
+                : `/c/${data.slug}/app`,
+              { replace: true }
+            );
+          }
+        });
+      return;
+    }
+    if (hasLicenseSession()) {
+      navigate('/setup-community', { replace: true });
+      return;
+    }
+  }, [loading, user, platformRole, memberships, navigate]);
+
   return (
     <div className="bg-white">
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">

@@ -22,7 +22,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { organization } = useTheme();
-  const { user, loading: authLoading, platformRole } = useAuth();
+  const { user, loading: authLoading, platformRole, memberships } = useAuth();
   const rolePriority: Record<string, number> = {
     owner: 4,
     admin: 3,
@@ -36,14 +36,43 @@ export function LoginPage() {
   const redirectPath = (location.state as { from?: string } | null)?.from ?? '/communities';
 
   useEffect(() => {
-    if (!authLoading && user) {
-      if (platformRole === 'super_admin') {
-        navigate('/super-admin', { replace: true });
-      } else {
-        navigate('/communities', { replace: true });
-      }
+    if (authLoading || !user) return;
+
+    if (platformRole === 'super_admin') {
+      navigate('/super-admin', { replace: true });
+      return;
     }
-  }, [authLoading, user, platformRole, navigate]);
+    const activeMemberships = memberships.filter((m) => m.status === 'active');
+    if (activeMemberships.length > 0) {
+      const primary = activeMemberships.sort(
+        (a, b) => (rolePriority[b.role] ?? 0) - (rolePriority[a.role] ?? 0)
+      )[0];
+      supabase
+        .from('organizations')
+        .select('slug')
+        .eq('id', primary.organization_id)
+        .maybeSingle<{ slug: string }>()
+        .then(({ data }) => {
+          if (data?.slug) {
+            const adminRoles = ['owner', 'admin', 'supervisor'];
+            navigate(
+              adminRoles.includes(primary.role)
+                ? `/c/${data.slug}/admin`
+                : `/c/${data.slug}/app`,
+              { replace: true }
+            );
+          } else {
+            navigate('/communities', { replace: true });
+          }
+        });
+      return;
+    }
+    if (hasLicenseSession()) {
+      navigate('/setup-community', { replace: true });
+      return;
+    }
+    navigate('/communities', { replace: true });
+  }, [authLoading, user, platformRole, memberships, navigate]);
 
   const withTimeout = async <T,>(promise: Promise<T>, label: string) => {
     const timeout = new Promise<never>((_, reject) =>

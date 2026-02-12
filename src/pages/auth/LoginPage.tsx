@@ -11,6 +11,7 @@ import {
   CheckCircle,
   HelpCircle,
   Shield,
+  Info,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -30,7 +31,7 @@ export function LoginPage() {
   const [noAdminAccess, setNoAdminAccess] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false); // new state for remember me
+  const [rememberMe, setRememberMe] = useState(false);
   const { organization } = useTheme();
   const { user, loading: authLoading, platformRole, memberships, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -92,7 +93,7 @@ export function LoginPage() {
 
   return (
     <>
-      {/* Animated background gradient with dot pattern */}
+      {/* Animated background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
         <div
@@ -106,7 +107,7 @@ export function LoginPage() {
         <div className="absolute bottom-0 -right-4 w-96 h-96 bg-[var(--color-primary)]/5 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
-      {/* Loading overlay – glassmorphism style */}
+      {/* Loading overlay */}
       {isLoading && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md transition-all duration-300"
@@ -127,28 +128,36 @@ export function LoginPage() {
       )}
 
       <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
-        {/* Header */}
+        {/* Header with brand logo */}
         <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8 animate-fade-in-down">
           <Link
             to="/"
             className="inline-flex items-center gap-2 mb-6 group transition-transform hover:scale-105"
           >
-            <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-[var(--color-primary)]/30 group-hover:shadow-xl transition-shadow">
-              {organization.name.charAt(0)}
-            </div>
+            {/* 🔹 REPLACED: organization initial with actual logo.png */}
+            <img
+              src="/logo.png"
+              alt={organization.name}
+              className="h-12 w-auto object-contain"
+            />
             <span className="font-bold text-3xl text-gray-900">{organization.name}</span>
           </Link>
           <h2 className="text-4xl font-extrabold tracking-tight text-gray-900">Welcome back</h2>
-          <p className="text-base text-gray-600 mt-3 max-w-xs mx-auto">
-            Admin login for organizations managing a Community Hub tenant.
-          </p>
         </div>
 
-        {/* Main content – two column layout */}
+        {/* Two‑column layout – CLEAR SEPARATION OF ACTIONS */}
         <div className="sm:mx-auto sm:w-full sm:max-w-5xl grid md:grid-cols-2 gap-8 px-4">
-          {/* Left card – Sign in form */}
-          <Card className="shadow-2xl border-0 ring-1 ring-gray-200/80 hover:ring-gray-300/80 transition-all duration-300 backdrop-blur-sm bg-white/95">
+          {/* LEFT CARD – Admin Login (email/password) */}
+          <Card className="shadow-2xl border-0 ring-1 ring-gray-200/80 backdrop-blur-sm bg-white/95">
             <CardContent className="p-8">
+              {/* 🔹 NEW: Explicit admin‑only notice */}
+              <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 flex items-start gap-3">
+                <Info className="w-5 h-5 shrink-0 mt-0.5" />
+                <p className="text-sm font-medium">
+                  Only authorized administrators can log in using email and password.
+                </p>
+              </div>
+
               <form className="space-y-6" onSubmit={handleSubmit} aria-disabled={isLoading}>
                 {error && (
                   <div
@@ -228,7 +237,7 @@ export function LoginPage() {
                 <span>2FA ready</span>
               </div>
 
-              {/* No admin access message – enhanced */}
+              {/* No admin access message (unchanged) */}
               {noAdminAccess && (
                 <div className="mt-6 p-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 animate-fade-in">
                   <div className="flex gap-3">
@@ -264,70 +273,50 @@ export function LoginPage() {
             </CardContent>
           </Card>
 
-          {/* Right card – Getting started & support */}
-          <Card className="shadow-2xl border-0 ring-1 ring-gray-200/80 hover:ring-gray-300/80 transition-all duration-300 backdrop-blur-sm bg-white/95">
+          {/* RIGHT CARD – License‑based Tenant Onboarding (for new & existing tenants) */}
+          <Card className="shadow-2xl border-0 ring-1 ring-gray-200/80 backdrop-blur-sm bg-white/95">
             <CardContent className="p-8">
               <div className="space-y-6">
-                {/* Header */}
+                {/* Header – reoriented to focus on license entry */}
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-[var(--color-primary)]/10">
                     <KeyRound className="w-6 h-6 text-[var(--color-primary)]" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900">New to {organization.name}?</h3>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    Tenant onboarding
+                  </h3>
                 </div>
 
                 <p className="text-gray-600 text-sm leading-relaxed">
-                  Onboarding is license‑first for new community tenants. Follow these simple steps to
-                  get your hub up and running.
+                  A valid license key is required to create or access your community hub.
                 </p>
 
-                {/* Step-by-step guide */}
-                <div className="space-y-4">
-                  <div className="flex gap-4 items-start">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-sm font-bold">
-                      1
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Enter your license key</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Provided at purchase – starts your tenant setup.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-sm font-bold">
-                      2
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Create admin account</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        You'll become the Owner of your new community.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-sm font-bold">
-                      3
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Set up your workspace</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Customize branding, invite members, and go live.
-                      </p>
-                    </div>
-                  </div>
+                {/* 🔹 NEW: Explicit messaging for existing tenants */}
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+                  <p className="text-sm">
+                    <span className="font-semibold">Existing tenant?</span> If you have not yet set
+                    up your admin account, enter your license key to continue.
+                  </p>
                 </div>
 
-                {/* Action buttons */}
-                <div className="pt-4 space-y-3">
+                {/* Primary action – Enter License Key */}
+                <div className="pt-2">
                   <Link to="/enter-license">
                     <Button
                       className="w-full gap-2 group"
+                      size="lg"
                       leftIcon={<KeyRound className="w-4 h-4 group-hover:rotate-12 transition-transform" />}
                     >
                       Enter License Key
                     </Button>
                   </Link>
+                </div>
+
+                {/* Secondary action – Contact Sales */}
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-sm font-medium text-gray-700 mb-3">
+                    Need to purchase a license?
+                  </p>
                   <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
                     <Button
                       className="w-full gap-2"
@@ -339,7 +328,7 @@ export function LoginPage() {
                   </a>
                 </div>
 
-                {/* Additional support */}
+                {/* Support info */}
                 <div className="pt-4 border-t border-gray-100">
                   <div className="flex items-start gap-3">
                     <HelpCircle className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
@@ -362,7 +351,7 @@ export function LoginPage() {
           </Card>
         </div>
 
-        {/* Footer */}
+        {/* Footer (unchanged) */}
         <footer className="mt-16 text-center text-xs text-gray-500">
           <div className="flex justify-center gap-6 mb-3">
             <Link to="/privacy" className="hover:text-gray-700 transition-colors">
@@ -381,7 +370,7 @@ export function LoginPage() {
         </footer>
       </div>
 
-      {/* Custom keyframe animations (add to your global CSS or via Tailwind config) */}
+      {/* Custom keyframe animations */}
       <style>{`
         @keyframes fade-in-down {
           0% { opacity: 0; transform: translateY(-10px); }

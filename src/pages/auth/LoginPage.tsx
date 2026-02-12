@@ -135,20 +135,22 @@ export function LoginPage() {
   }, [authLoading, user, session, platformRole, memberships, postLoginRedirect, navigate]);
 
   const getLoginErrorMessage = (err: unknown): string => {
-    const obj = err && typeof err === 'object' ? err : null;
-    const message = obj && 'message' in obj && typeof (obj as { message: unknown }).message === 'string'
-      ? (obj as { message: string }).message
-      : err instanceof Error ? err.message : '';
+    const obj = err && typeof err === 'object' ? (err as Record<string, unknown>) : null;
+    const message =
+      (obj?.error_description && typeof obj.error_description === 'string' ? obj.error_description : null) ||
+      (obj?.message && typeof obj.message === 'string' ? obj.message : null) ||
+      (err instanceof Error ? err.message : '') ||
+      '';
 
     if (!message) return 'Unable to sign in. Please check your credentials and try again.';
-    if (/email not confirmed|signup_not confirmed/i.test(message)) {
-      return 'Your email is not verified yet. Check your inbox, confirm your account, then sign in again.';
+    if (/email not confirmed|signup_not confirmed|email_not_confirmed/i.test(message)) {
+      return 'Your email is not verified yet. In Supabase: Authentication → Users → open your user → confirm email, or turn off "Confirm email" in Providers.';
     }
-    if (/invalid login credentials/i.test(message)) {
-      return 'Incorrect email or password. Please try again.';
+    if (/invalid login credentials|invalid_grant/i.test(message)) {
+      return 'Incorrect email or password. If you just created the user in Supabase, confirm the email or use "Send password recovery" to set a new password.';
     }
     if (/user not found|invalid_credentials/i.test(message)) {
-      return 'No account found with this email. Check your email or sign up first.';
+      return 'No account found with this email. Create the user in Supabase → Authentication → Users → Add user (check Auto Confirm User).';
     }
     if (/rate limit|too many requests/i.test(message)) {
       return 'Too many attempts. Please wait a few minutes and try again.';
@@ -194,13 +196,26 @@ export function LoginPage() {
       const userId = data.user?.id;
       const userEmail = (data.user?.email ?? normalizedEmail).trim().toLowerCase();
 
+      // Redirect super admin to dashboard immediately (don't wait for AuthContext)
+      if (userId) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('platform_role')
+          .eq('user_id', userId)
+          .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+        if (profileData?.platform_role === 'super_admin') {
+          setIsLoading(false);
+          navigate('/super-admin', { replace: true });
+          return;
+        }
+      }
+
       if (userId && redirectPath !== '/communities') {
         setPostLoginRedirect(redirectPath);
         return;
       }
 
-      // Run one-time pending actions (bootstrap/join) and set postLoginRedirect; do NOT navigate here.
-      // Redirect is done in useEffect when authLoading becomes false and AuthContext has platformRole/memberships.
+      // Run one-time pending actions (bootstrap/join) and set postLoginRedirect
       if (userId) {
         const pendingBootstrap = getPendingTenantBootstrap(userEmail);
         if (pendingBootstrap) {
@@ -380,8 +395,7 @@ export function LoginPage() {
           </CardContent>
         </Card>
         <p className="mt-6 text-center text-xs text-gray-500">
-          Still can't log in? Check: user exists in Supabase Auth, email is confirmed, and run{' '}
-          <code className="bg-gray-100 px-1 rounded">supabase/fix-super-admin.sql</code> in the SQL Editor if you need super admin.
+          <strong>Getting 400 or stuck?</strong> In Supabase: <strong>Authentication → Providers → Email</strong> → turn OFF &quot;Confirm email&quot;. Then <strong>Authentication → Users</strong> → open your user → <strong>Confirm user</strong>. Run <code className="bg-gray-100 px-1 rounded">fix-super-admin.sql</code> in SQL Editor for super admin, then try again.
         </p>
       </div>
     </div>

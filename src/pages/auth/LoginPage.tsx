@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -25,7 +25,8 @@ export function LoginPage() {
   const [postLoginRedirect, setPostLoginRedirect] = useState<string | null>(null);
   const [loginSuccessAt, setLoginSuccessAt] = useState<number | null>(null);
   const { organization } = useTheme();
-  const { user, loading: authLoading, session, platformRole, memberships } = useAuth();
+  const { user, loading: authLoading, session, platformRole, memberships, refreshProfile } = useAuth();
+  const fallbackProfileCheckDone = useRef(false);
   const rolePriority: Record<string, number> = {
     owner: 4,
     admin: 3,
@@ -40,7 +41,10 @@ export function LoginPage() {
 
   // Clear any stale post-login redirect when user is signed out (e.g. after sign out, then opening login again).
   useEffect(() => {
-    if (!user && !authLoading) setPostLoginRedirect(null);
+    if (!user && !authLoading) {
+      setPostLoginRedirect(null);
+      fallbackProfileCheckDone.current = false;
+    }
   }, [user, authLoading]);
 
   // Fallback: if auth listener never fires after login, redirect once we have session (e.g. after sign-out/login edge cases).
@@ -91,6 +95,23 @@ export function LoginPage() {
     if (authLoading || !user) return;
 
     setLoginSuccessAt(null);
+
+    // Fallback: if context says platformRole 'user' but DB has super_admin (e.g. profile fetch failed or was stale), re-fetch and refresh context.
+    if (platformRole === 'user' && !fallbackProfileCheckDone.current) {
+      fallbackProfileCheckDone.current = true;
+      supabase
+        .from('profiles')
+        .select('platform_role')
+        .eq('user_id', user.id)
+        .maybeSingle<{ platform_role: 'user' | 'super_admin' }>()
+        .then(({ data }) => {
+          if (data?.platform_role === 'super_admin') {
+            if (import.meta.env.DEV) console.debug('[Login] fallback profile check: DB has super_admin, refreshing AuthContext');
+            refreshProfile();
+          }
+        });
+      return;
+    }
 
     if (postLoginRedirect) {
       if (import.meta.env.DEV) {
@@ -143,7 +164,7 @@ export function LoginPage() {
     }
     if (import.meta.env.DEV) console.debug('[Login] redirect effect → /communities (default)');
     navigate('/communities', { replace: true });
-  }, [authLoading, user, session, platformRole, memberships, postLoginRedirect, navigate]);
+  }, [authLoading, user, session, platformRole, memberships, postLoginRedirect, navigate, refreshProfile]);
 
   const getLoginErrorMessage = (err: unknown): string => {
     const obj = err && typeof err === 'object' ? (err as Record<string, unknown>) : null;

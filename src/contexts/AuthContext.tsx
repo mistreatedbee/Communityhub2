@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { UserRole } from '../types';
@@ -26,6 +26,8 @@ type AuthContextType = {
   memberships: Membership[];
   profileName: string | null;
   signOut: () => Promise<void>;
+  /** Re-fetch profile and memberships for current user (e.g. after login when context may have stale role). */
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [platformRole, setPlatformRole] = useState<'user' | 'super_admin'>('user');
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const refreshUserContextRef = useRef<((nextUser: User | null) => Promise<void>) | null>(null);
+  const userRef = useRef<User | null>(null);
+  userRef.current = user;
 
   useEffect(() => {
     let mounted = true;
@@ -75,21 +80,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const [
-        { data: profileData, error: profileError },
-        { data: membershipsData, error: membershipsError }
-      ] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('user_id, full_name, platform_role')
-          .eq('user_id', nextUser.id)
-          .maybeSingle<ProfileRow>(),
-        supabase
-          .from('organization_memberships')
-          .select('organization_id, role, status')
-          .eq('user_id', nextUser.id)
-          .returns<Membership[]>()
-      ]);
+      let profileData: ProfileRow | null = null;
+      let profileError: { code: string; message: string } | null = null;
+      let membershipsData: Membership[] | undefined;
+      let membershipsError: { code: string; message: string } | null = null;
+
+      for (let attempt = 0; attempt < 2 && mounted; attempt++) {
+        const [profileResult, membershipsResult] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('user_id, full_name, platform_role')
+            .eq('user_id', nextUser.id)
+            .maybeSingle<ProfileRow>(),
+          supabase
+            .from('organization_memberships')
+            .select('organization_id, role, status')
+            .eq('user_id', nextUser.id)
+            .returns<Membership[]>()
+        ]);
+        profileData = profileResult.data;
+        profileError = profileResult.error;
+        membershipsData = membershipsResult.data;
+        membershipsError = membershipsResult.error;
+        if (profileData || profileError) break;
+        if (attempt === 0 && import.meta.env.DEV) {
+          console.debug('[AuthContext] Profile null on first try, retrying in 1s…');
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+      }
 
       if (import.meta.env.DEV) {
         if (profileError) {
@@ -118,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPlatformRole(profileData?.platform_role ?? 'user');
       setMemberships(memberships);
     };
+    refreshUserContextRef.current = refreshUserContext;
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
@@ -178,6 +197,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    const currentUser = userRef.current;
+    const fn = refreshUserContextRef.current;
+    if (currentUser && fn) {
+      if (import.meta.env.DEV) console.debug('[AuthContext] refreshProfile() called');
+      await fn(currentUser);
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -191,9 +219,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut: async () => {
         clearImpersonation();
         await supabase.auth.signOut();
-      }
+      },
+      refreshProfile
     }),
-    [loading, organizationId, platformRole, memberships, profileName, role, session, user]
+    [loading, organizationId, platformRole, memberships, profileName, refreshProfile, role, session, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

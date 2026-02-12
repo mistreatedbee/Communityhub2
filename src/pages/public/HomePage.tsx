@@ -9,7 +9,6 @@ import {
   MessageCircle,
   CheckCircle,
   Building2,
-  ChevronRight,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -52,7 +51,7 @@ export function HomePage() {
 
   return (
     <>
-      {/* Animated background – same as other pages */}
+      {/* Animated background – consistent with other pages */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
         <div
@@ -67,26 +66,6 @@ export function HomePage() {
       </div>
 
       <div className="relative min-h-screen flex flex-col">
-        {/* Simple navigation bar */}
-        <nav className="w-full py-4 px-6 sm:px-8 flex items-center justify-between backdrop-blur-sm bg-white/30 border-b border-gray-200/50 sticky top-0 z-50">
-          <Link to="/" className="flex items-center gap-2 group transition-transform hover:scale-105">
-            <img src="/logo.png" alt={organization.name} className="h-8 w-auto" />
-            <span className="font-bold text-xl text-gray-900 hidden sm:inline">
-              {organization.name}
-            </span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition">
-              Sign in
-            </Link>
-            <Link to="/admin">
-              <Button size="sm" className="hidden sm:inline-flex">
-                Admin access
-              </Button>
-            </Link>
-          </div>
-        </nav>
-
         {/* Hero section – full screen with logo and animated elements */}
         <section className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="max-w-7xl mx-auto w-full">
@@ -132,22 +111,20 @@ export function HomePage() {
                 </p>
               </div>
 
-              {/* Right column – visual elements (logo + floating cards) */}
+              {/* Right column – logo + floating cards */}
               <div className="relative hidden lg:flex items-center justify-center animate-fade-in-right">
                 <div className="relative w-full max-w-md">
-                  {/* Main logo */}
+                  {/* Main logo card */}
                   <div className="relative z-10 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/50">
                     <img src="/logo.png" alt={organization.name} className="w-full h-auto" />
                   </div>
-                  {/* Floating card 1 */}
+                  {/* Floating feature cards */}
                   <div className="absolute -top-8 -left-12 z-0 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-4 border border-gray-200/50 animate-float-slow">
                     <Shield className="w-6 h-6 text-[var(--color-primary)]" />
                   </div>
-                  {/* Floating card 2 */}
                   <div className="absolute -bottom-8 -right-12 z-0 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-4 border border-gray-200/50 animate-float">
                     <Users className="w-6 h-6 text-[var(--color-primary)]" />
                   </div>
-                  {/* Floating card 3 */}
                   <div className="absolute bottom-12 -left-16 z-0 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-4 border border-gray-200/50 animate-float-slow-reverse">
                     <KeyRound className="w-6 h-6 text-[var(--color-primary)]" />
                   </div>
@@ -267,7 +244,7 @@ export function HomePage() {
                 <Button
                   size="lg"
                   variant="primary"
-                  className="bg-white text-gray-900 hover:bg-gray-100 gap-2 w-full sm:w-auto"
+                  className="bg-gray text-white hover:bg-white/10 gap-2 w-full sm:w-auto"
                   leftIcon={<KeyRound className="w-4 h-4" />}
                 >
                   Enter license key
@@ -293,31 +270,6 @@ export function HomePage() {
             </p>
           </div>
         </section>
-
-        {/* Footer */}
-        <footer className="mt-auto bg-white/50 backdrop-blur-sm border-t border-gray-200/50 py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-2">
-                <img src="/logo.png" alt={organization.name} className="h-6 w-auto" />
-                <span className="text-sm text-gray-600">
-                  &copy; {new Date().getFullYear()} {organization.name}. All rights reserved.
-                </span>
-              </div>
-              <div className="flex gap-6 text-sm text-gray-600">
-                <Link to="/privacy" className="hover:text-gray-900 transition">
-                  Privacy
-                </Link>
-                <Link to="/terms" className="hover:text-gray-900 transition">
-                  Terms
-                </Link>
-                <Link to="/contact" className="hover:text-gray-900 transition">
-                  Contact
-                </Link>
-              </div>
-            </div>
-          </div>
-        </footer>
       </div>
 
       {/* Keyframe animations – add to global CSS or keep here */}

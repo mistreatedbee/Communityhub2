@@ -39,6 +39,7 @@ export function LoginPage() {
   const location = useLocation();
   const { addToast } = useToast();
   const redirectPath = (location.state as { from?: string } | null)?.from ?? '/communities';
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // Clear any stale post-login redirect when user is signed out (e.g. after sign out, then opening login again).
   useEffect(() => {
@@ -255,20 +256,38 @@ export function LoginPage() {
       const userId = data.user?.id;
       const userEmail = (data.user?.email ?? normalizedEmail).trim().toLowerCase();
 
-      // Hard check role immediately after sign-in to avoid race conditions in redirect effects.
+      // Hard check role with retries to avoid auth/profile timing races.
       if (userId) {
-        const { data: roleRow, error: roleError } = await supabase
-          .from('profiles')
-          .select('platform_role')
-          .eq('user_id', userId)
-          .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
-        if (roleError && import.meta.env.DEV) {
-          console.debug('[Login] immediate role check failed', roleError.code, roleError.message);
+        let roleRow: { platform_role: 'user' | 'super_admin' } | null = null;
+        let roleError: { code?: string; message: string } | null = null;
+
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const roleResult = await supabase
+            .from('profiles')
+            .select('platform_role')
+            .eq('user_id', userId)
+            .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+
+          roleRow = roleResult.data;
+          roleError = roleResult.error;
+
+          if (roleError && import.meta.env.DEV) {
+            console.debug('[Login] immediate role check failed', roleError.code, roleError.message, 'attempt', attempt + 1);
+          }
+          if (roleRow?.platform_role === 'super_admin') {
+            break;
+          }
+          if (attempt < 4) await sleep(400);
         }
+
         if (roleRow?.platform_role === 'super_admin') {
           await refreshProfile();
           navigate('/super-admin', { replace: true });
           return;
+        }
+
+        if (roleError && import.meta.env.DEV) {
+          console.debug('[Login] role lookup failed after retries; continuing with default redirect flow');
         }
       }
 

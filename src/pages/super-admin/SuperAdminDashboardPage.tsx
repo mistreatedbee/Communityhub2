@@ -41,16 +41,11 @@ export function SuperAdminDashboardPage() {
   const [recentOrgs, setRecentOrgs] = useState<OrganizationWithPlan[]>([]);
   const [planCounts, setPlanCounts] = useState<PlanCount[]>([]);
   const [recentActivity, setRecentActivity] = useState<AuditEntry[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [
-      { count: tenantCount },
-      { count: userCount },
-      { data: licenseRows },
-      { data: orgRows },
-      { data: plansWithOrgs },
-      { data: auditRows }
-    ] = await Promise.all([
+    setLoadError(null);
+    const queries = [
       supabase.from('organizations').select('id', { count: 'exact', head: true }),
       supabase.from('profiles').select('user_id', { count: 'exact', head: true }),
       supabase
@@ -70,13 +65,60 @@ export function SuperAdminDashboardPage() {
         .select('id, action, created_at, organization_id')
         .order('created_at', { ascending: false })
         .limit(10)
-    ]);
+    ];
+
+    const results = await Promise.allSettled(queries.map((q) => q));
+    const errors: string[] = [];
+
+    const tenantResult = results[0].status === 'fulfilled' ? results[0].value : null;
+    const userResult = results[1].status === 'fulfilled' ? results[1].value : null;
+    const licenseResult = results[2].status === 'fulfilled' ? results[2].value : null;
+    const orgResult = results[3].status === 'fulfilled' ? results[3].value : null;
+    const plansResult = results[4].status === 'fulfilled' ? results[4].value : null;
+    const auditResult = results[5].status === 'fulfilled' ? results[5].value : null;
+
+    const hasError = (r: unknown): r is { error: unknown } => r != null && typeof r === 'object' && 'error' in r && (r as { error: unknown }).error != null;
+
+    if (results[0].status === 'rejected' || hasError(tenantResult)) {
+      errors.push('organizations');
+      if (import.meta.env.DEV) console.error('[SuperAdminDashboard] organizations', results[0].status === 'rejected' ? results[0].reason : (tenantResult as { error: unknown })?.error);
+    }
+    if (results[1].status === 'rejected' || hasError(userResult)) {
+      errors.push('profiles');
+      if (import.meta.env.DEV) console.error('[SuperAdminDashboard] profiles', results[1].status === 'rejected' ? results[1].reason : (userResult as { error: unknown })?.error);
+    }
+    if (results[2].status === 'rejected' || hasError(licenseResult)) {
+      errors.push('organization_licenses');
+      if (import.meta.env.DEV) console.error('[SuperAdminDashboard] organization_licenses', results[2].status === 'rejected' ? results[2].reason : (licenseResult as { error: unknown })?.error);
+    }
+    if (results[3].status === 'rejected' || hasError(orgResult)) {
+      errors.push('organizations recent');
+      if (import.meta.env.DEV) console.error('[SuperAdminDashboard] organizations recent', results[3].status === 'rejected' ? results[3].reason : (orgResult as { error: unknown })?.error);
+    }
+    if (results[4].status === 'rejected' || hasError(plansResult)) {
+      errors.push('license_plans');
+      if (import.meta.env.DEV) console.error('[SuperAdminDashboard] license_plans', results[4].status === 'rejected' ? results[4].reason : (plansResult as { error: unknown })?.error);
+    }
+    if (results[5].status === 'rejected' || hasError(auditResult)) {
+      errors.push('audit_logs');
+      if (import.meta.env.DEV) console.error('[SuperAdminDashboard] audit_logs', results[5].status === 'rejected' ? results[5].reason : (auditResult as { error: unknown })?.error);
+    }
+
+    if (errors.length > 0) {
+      setLoadError(`Failed to load: ${errors.join(', ')}. Check RLS and that you are signed in as super admin.`);
+    }
+
+    const tenantCount = (tenantResult && !(tenantResult as { error?: unknown }).error) ? (tenantResult as { count?: number }).count ?? 0 : 0;
+    const userCount = (userResult && !(userResult as { error?: unknown }).error) ? (userResult as { count?: number }).count ?? 0 : 0;
+    const licenseRows = (licenseResult && !(licenseResult as { error?: unknown }).error) ? (licenseResult as { data?: unknown[] }).data ?? [] : [];
+    const orgRows = (orgResult && !(orgResult as { error?: unknown }).error) ? (orgResult as { data?: unknown[] }).data ?? [] : [];
+    const plansWithOrgs = (plansResult && !(plansResult as { error?: unknown }).error) ? (plansResult as { data?: unknown[] }).data ?? [] : [];
+    const auditRows = (auditResult && !(auditResult as { error?: unknown }).error) ? (auditResult as { data?: unknown[] }).data ?? [] : [];
 
     setTotalTenants(tenantCount ?? 0);
     setTotalUsers(userCount ?? 0);
-    const active = (licenseRows ?? []).length;
-    setActiveLicenses(active);
-    const revenue = (licenseRows ?? []).reduce((sum, row: { license_plans?: { price_cents?: number }; license_plan?: { price_cents?: number } }) => {
+    setActiveLicenses(licenseRows.length);
+    const revenue = licenseRows.reduce((sum: number, row: { license_plans?: { price_cents?: number }; license_plan?: { price_cents?: number } }) => {
       const p = row.license_plans ?? row.license_plan;
       return sum + (p?.price_cents ?? 0);
     }, 0);
@@ -126,6 +168,14 @@ export function SuperAdminDashboardPage() {
 
   return (
     <div className="space-y-8">
+      {loadError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-center justify-between gap-4">
+          <p className="text-sm text-amber-800">{loadError}</p>
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            Retry
+          </Button>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Platform Overview</h1>

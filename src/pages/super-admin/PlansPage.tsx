@@ -66,21 +66,33 @@ export function PlansPage() {
   const [generating, setGenerating] = useState(false);
 
   const loadPlans = async () => {
-    const { data } = await supabase
-      .from('license_plans')
-      .select('id, name, description, price_cents, billing_cycle, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags')
-      .order('price_cents', { ascending: true })
-      .returns<PlanRow[]>();
-    setPlans(data ?? []);
+    try {
+      const { data, error } = await supabase
+        .from('license_plans')
+        .select('id, name, description, price_cents, billing_cycle, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags')
+        .order('price_cents', { ascending: true })
+        .returns<PlanRow[]>();
+      if (error && import.meta.env.DEV) console.error('[PlansPage] license_plans', error);
+      setPlans(data ?? []);
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('[PlansPage] loadPlans', e);
+      setPlans([]);
+    }
   };
 
   const loadLicenseKeys = async () => {
-    const { data } = await supabase
-      .from('licenses')
-      .select('id, key, plan_id, status, expires_at, single_use, claimed_at, claimed_tenant_id, license_plans(name), organizations(id, name, slug)')
-      .order('created_at', { ascending: false })
-      .returns<LicenseKeyRow[]>();
-    setLicenseKeys(data ?? []);
+    try {
+      const { data, error } = await supabase
+        .from('licenses')
+        .select('id, key, plan_id, status, expires_at, single_use, claimed_at, claimed_tenant_id, license_plans(name), organizations(id, name, slug)')
+        .order('created_at', { ascending: false })
+        .returns<LicenseKeyRow[]>();
+      if (error && import.meta.env.DEV) console.error('[PlansPage] licenses', error);
+      setLicenseKeys(data ?? []);
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('[PlansPage] loadLicenseKeys', e);
+      setLicenseKeys([]);
+    }
   };
 
   useEffect(() => {

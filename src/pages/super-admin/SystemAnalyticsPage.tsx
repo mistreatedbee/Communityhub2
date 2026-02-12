@@ -12,31 +12,38 @@ export function SystemAnalyticsPage() {
 
   useEffect(() => {
     const load = async () => {
-      const [{ data: licenses }, { count: activeCount }, { count: userCount }] = await Promise.all([
-        supabase
-          .from('organization_licenses')
-          .select('status, license_plan:license_plans(name, price_cents)')
-          .in('status', ['active', 'trial']),
-        supabase
-          .from('organizations')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'active'),
-        supabase.from('profiles').select('user_id', { count: 'exact', head: true })
-      ]);
+      try {
+        const [licRes, orgRes, profileRes] = await Promise.all([
+          supabase
+            .from('organization_licenses')
+            .select('status, license_plan:license_plans(name, price_cents)')
+            .in('status', ['active', 'trial']),
+          supabase
+            .from('organizations')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'active'),
+          supabase.from('profiles').select('user_id', { count: 'exact', head: true })
+        ]);
+        if (licRes.error && import.meta.env.DEV) console.error('[SystemAnalyticsPage] organization_licenses', licRes.error);
+        if (orgRes.error && import.meta.env.DEV) console.error('[SystemAnalyticsPage] organizations', orgRes.error);
+        if (profileRes.error && import.meta.env.DEV) console.error('[SystemAnalyticsPage] profiles', profileRes.error);
 
-      const activeLicenses = licenses ?? [];
-      const revenue = activeLicenses.reduce((sum, row: any) => sum + (row.license_plan?.price_cents ?? 0), 0);
-      setMrr(revenue / 100);
-      setTotalRevenue(revenue / 100);
-      setActiveTenants(activeCount ?? 0);
-      setTotalUsers(userCount ?? 0);
+        const activeLicenses = licRes.data ?? [];
+        const revenue = activeLicenses.reduce((sum, row: { license_plan?: { price_cents?: number } }) => sum + (row.license_plan?.price_cents ?? 0), 0);
+        setMrr(revenue / 100);
+        setTotalRevenue(revenue / 100);
+        setActiveTenants(orgRes.count ?? 0);
+        setTotalUsers(profileRes.count ?? 0);
 
-      const breakdown = activeLicenses.reduce<Record<string, number>>((acc, row: any) => {
-        const name = row.license_plan?.name ?? 'Unknown';
-        acc[name] = (acc[name] ?? 0) + (row.license_plan?.price_cents ?? 0);
-        return acc;
-      }, {});
-      setPlanBreakdown(breakdown);
+        const breakdown = activeLicenses.reduce<Record<string, number>>((acc, row: { license_plan?: { name?: string; price_cents?: number } }) => {
+          const name = row.license_plan?.name ?? 'Unknown';
+          acc[name] = (acc[name] ?? 0) + (row.license_plan?.price_cents ?? 0);
+          return acc;
+        }, {});
+        setPlanBreakdown(breakdown);
+      } catch (e) {
+        if (import.meta.env.DEV) console.error('[SystemAnalyticsPage] load', e);
+      }
     };
     void load();
   }, []);

@@ -32,46 +32,56 @@ export function TenantDetailPage() {
   useEffect(() => {
     const load = async () => {
       if (!tenantId) return;
-      const { data: tenantData } = await supabase
-        .from('organizations')
-        .select('id, name, slug, status, created_at, contact_email')
-        .eq('id', tenantId)
-        .maybeSingle<TenantRow>();
-      const { data: auditData } = await supabase
-        .from('audit_logs')
-        .select('id, action, created_at')
-        .eq('organization_id', tenantId)
-        .order('created_at', { ascending: false })
-        .limit(10)
-        .returns<AuditRow[]>();
-      const { data: adminMembership } = await supabase
-        .from('organization_memberships')
-        .select('user_id')
-        .eq('organization_id', tenantId)
-        .in('role', ['owner', 'admin'])
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle<{ user_id: string }>();
-      const [{ count: members }, { count: posts }, { count: resources }] = await Promise.all([
-        supabase
+      try {
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('organizations')
+          .select('id, name, slug, status, created_at, contact_email')
+          .eq('id', tenantId)
+          .maybeSingle<TenantRow>();
+        if (tenantError && import.meta.env.DEV) console.error('[TenantDetailPage] organizations', tenantError);
+        const { data: auditData } = await supabase
+          .from('audit_logs')
+          .select('id, action, created_at')
+          .eq('organization_id', tenantId)
+          .order('created_at', { ascending: false })
+          .limit(10)
+          .returns<AuditRow[]>();
+        const { data: adminMembership } = await supabase
           .from('organization_memberships')
-          .select('id', { count: 'exact', head: true })
+          .select('user_id')
           .eq('organization_id', tenantId)
-          .eq('status', 'active'),
-        supabase
-          .from('tenant_posts')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', tenantId),
-        supabase
-          .from('tenant_resources')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', tenantId)
-      ]);
-      setTenant(tenantData ?? null);
-      setAuditLogs(auditData ?? []);
-      setAdminUserId(adminMembership?.user_id ?? null);
-      setUsage({ members: members ?? 0, posts: posts ?? 0, resources: resources ?? 0 });
-      setLoading(false);
+          .in('role', ['owner', 'admin'])
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle<{ user_id: string }>();
+        const [memRes, postsRes, resourcesRes] = await Promise.all([
+          supabase
+            .from('organization_memberships')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', tenantId)
+            .eq('status', 'active'),
+          supabase
+            .from('tenant_posts')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', tenantId),
+          supabase
+            .from('tenant_resources')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', tenantId)
+        ]);
+        setTenant(tenantData ?? null);
+        setAuditLogs(auditData ?? []);
+        setAdminUserId(adminMembership?.user_id ?? null);
+        setUsage({
+          members: memRes.count ?? 0,
+          posts: postsRes.count ?? 0,
+          resources: resourcesRes.count ?? 0
+        });
+      } catch (e) {
+        if (import.meta.env.DEV) console.error('[TenantDetailPage] load', e);
+      } finally {
+        setLoading(false);
+      }
     };
     void load();
   }, [tenantId]);

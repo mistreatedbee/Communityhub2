@@ -62,26 +62,35 @@ export function OrganizationsPage() {
   const [planId, setPlanId] = useState('');
 
   const loadData = async () => {
-    const [{ data: orgRows }, { data: memberRows }, { data: planRows }] = await Promise.all([
-      supabase
-        .from('organizations')
-        .select('id, name, slug, status, created_at, organization_licenses(status, license_plan:license_plans(id, name))')
-        .order('created_at', { ascending: false })
-        .returns<TenantRow[]>(),
-      supabase
-        .from('organization_memberships')
-        .select('organization_id, role, status')
-        .returns<MembershipRow[]>(),
-      supabase
-        .from('license_plans')
-        .select('id, name')
-        .order('price_cents', { ascending: true })
-        .returns<LicenseRow[]>()
-    ]);
-    setOrganizations(orgRows ?? []);
-    setMemberships(memberRows ?? []);
-    setPlans(planRows ?? []);
-    if (!planId && planRows?.length) setPlanId(planRows[0].id);
+    try {
+      const [orgRes, memberRes, planRes] = await Promise.all([
+        supabase
+          .from('organizations')
+          .select('id, name, slug, status, created_at, organization_licenses(status, license_plan:license_plans(id, name))')
+          .order('created_at', { ascending: false })
+          .returns<TenantRow[]>(),
+        supabase
+          .from('organization_memberships')
+          .select('organization_id, role, status')
+          .returns<MembershipRow[]>(),
+        supabase
+          .from('license_plans')
+          .select('id, name')
+          .order('price_cents', { ascending: true })
+          .returns<LicenseRow[]>()
+      ]);
+      if (orgRes.error && import.meta.env.DEV) console.error('[OrganizationsPage] organizations', orgRes.error);
+      if (memberRes.error && import.meta.env.DEV) console.error('[OrganizationsPage] memberships', memberRes.error);
+      if (planRes.error && import.meta.env.DEV) console.error('[OrganizationsPage] license_plans', planRes.error);
+      setOrganizations(orgRes.data ?? []);
+      setMemberships(memberRes.data ?? []);
+      setPlans(planRes.data ?? []);
+      if (!planId && planRes.data?.length) setPlanId(planRes.data[0].id);
+      if (orgRes.error) addToast('Failed to load organizations. Check RLS.', 'error');
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('[OrganizationsPage] loadData', e);
+      addToast('Failed to load data.', 'error');
+    }
   };
 
   useEffect(() => {

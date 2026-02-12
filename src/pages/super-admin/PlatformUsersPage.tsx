@@ -47,14 +47,24 @@ export function PlatformUsersPage() {
 
   useEffect(() => {
     const load = async () => {
-      const [{ data: userRows }, { data: memberRows }, { data: tenantRows }] = await Promise.all([
-        supabase.from('profiles').select('user_id, full_name, email, platform_role, created_at').returns<UserRow[]>(),
-        supabase.from('organization_memberships').select('organization_id, user_id, role, status').returns<MembershipRow[]>(),
-        supabase.from('organizations').select('id, name, slug').returns<TenantRow[]>()
-      ]);
-      setUsers(userRows ?? []);
-      setMemberships(memberRows ?? []);
-      setTenants(tenantRows ?? []);
+      try {
+        const [userRes, memberRes, tenantRes] = await Promise.all([
+          supabase.from('profiles').select('user_id, full_name, email, platform_role, created_at').returns<UserRow[]>(),
+          supabase.from('organization_memberships').select('organization_id, user_id, role, status').returns<MembershipRow[]>(),
+          supabase.from('organizations').select('id, name, slug').returns<TenantRow[]>()
+        ]);
+        if (userRes.error && import.meta.env.DEV) console.error('[PlatformUsersPage] profiles', userRes.error);
+        if (memberRes.error && import.meta.env.DEV) console.error('[PlatformUsersPage] memberships', memberRes.error);
+        if (tenantRes.error && import.meta.env.DEV) console.error('[PlatformUsersPage] organizations', tenantRes.error);
+        setUsers(userRes.data ?? []);
+        setMemberships(memberRes.data ?? []);
+        setTenants(tenantRes.data ?? []);
+      } catch (e) {
+        if (import.meta.env.DEV) console.error('[PlatformUsersPage] load', e);
+        setUsers([]);
+        setMemberships([]);
+        setTenants([]);
+      }
     };
     void load();
   }, []);

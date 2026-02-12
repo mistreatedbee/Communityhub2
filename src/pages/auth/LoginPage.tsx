@@ -19,6 +19,7 @@ import { getSafeErrorMessage } from '../../utils/errors';
 
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isResolvingRole, setIsResolvingRole] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -99,19 +100,29 @@ export function LoginPage() {
     // Fallback: if context says platformRole 'user' but DB has super_admin (e.g. profile fetch failed or was stale), re-fetch and refresh context.
     if (platformRole === 'user' && !fallbackProfileCheckDone.current) {
       fallbackProfileCheckDone.current = true;
-      supabase
-        .from('profiles')
-        .select('platform_role')
-        .eq('user_id', user.id)
-        .maybeSingle<{ platform_role: 'user' | 'super_admin' }>()
-        .then(({ data }) => {
+      setIsResolvingRole(true);
+      (async () => {
+        try {
+          const { data, error: profileCheckError } = await supabase
+            .from('profiles')
+            .select('platform_role')
+            .eq('user_id', user.id)
+            .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+          if (profileCheckError && import.meta.env.DEV) {
+            console.debug('[Login] fallback profile check failed', profileCheckError.code, profileCheckError.message);
+          }
           if (data?.platform_role === 'super_admin') {
             if (import.meta.env.DEV) console.debug('[Login] fallback profile check: DB has super_admin, refreshing AuthContext');
-            refreshProfile();
+            await refreshProfile();
           }
-        });
+        } finally {
+          setIsResolvingRole(false);
+        }
+      })();
       return;
     }
+
+    if (isResolvingRole) return;
 
     if (postLoginRedirect) {
       if (import.meta.env.DEV) {
@@ -164,7 +175,7 @@ export function LoginPage() {
     }
     if (import.meta.env.DEV) console.debug('[Login] redirect effect → /communities (default)');
     navigate('/communities', { replace: true });
-  }, [authLoading, user, session, platformRole, memberships, postLoginRedirect, navigate, refreshProfile]);
+  }, [authLoading, user, session, platformRole, memberships, postLoginRedirect, navigate, refreshProfile, isResolvingRole]);
 
   const getLoginErrorMessage = (err: unknown): string => {
     const obj = err && typeof err === 'object' ? (err as Record<string, unknown>) : null;
@@ -243,6 +254,23 @@ export function LoginPage() {
 
       const userId = data.user?.id;
       const userEmail = (data.user?.email ?? normalizedEmail).trim().toLowerCase();
+
+      // Hard check role immediately after sign-in to avoid race conditions in redirect effects.
+      if (userId) {
+        const { data: roleRow, error: roleError } = await supabase
+          .from('profiles')
+          .select('platform_role')
+          .eq('user_id', userId)
+          .maybeSingle<{ platform_role: 'user' | 'super_admin' }>();
+        if (roleError && import.meta.env.DEV) {
+          console.debug('[Login] immediate role check failed', roleError.code, roleError.message);
+        }
+        if (roleRow?.platform_role === 'super_admin') {
+          await refreshProfile();
+          navigate('/super-admin', { replace: true });
+          return;
+        }
+      }
 
       // Do not navigate here — wait for AuthContext to update, then the redirect useEffect will run.
       if (userId && redirectPath !== '/communities') {

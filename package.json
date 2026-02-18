@@ -5,21 +5,27 @@
   "type": "module",
   "scripts": {
     "dev": "npx vite",
+    "api:dev": "npm --prefix server run dev",
     "build": "npx vite build",
+    "server:build": "npm --prefix server run build",
+    "server:start": "npm --prefix server run start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "preview": "npx vite preview",
-    "migrate": "node scripts/run-migrations.js"
+    "preview": "npx vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.95.3",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
     "framer-motion": "^11.5.4",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "0.522.0",
+    "mongoose": "^8.19.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
-    "pg": "^8.13.0",
     "@types/node": "^20.11.18",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",

@@ -18,26 +18,18 @@ export function TenantAdminBillingPage() {
           <h2 className="text-lg font-semibold text-gray-900">Current Plan</h2>
         </div>
         <p className="text-sm text-gray-600">
-          Plan: {license?.license.name ?? 'No plan assigned'} · Status: {license?.status ?? 'unknown'}
+          Plan: {license?.plan?.name ?? 'No plan assigned'} � Status: {license?.status ?? 'UNKNOWN'}
         </p>
-        {(license?.status === 'expired' || license?.status === 'cancelled') && (
-          <p className="text-sm text-red-600 mt-2">
-            This license is no longer active. Content creation is disabled until renewed.
-          </p>
-        )}
-        {license?.starts_at && (
-          <p className="text-xs text-gray-500 mt-1">
-            Started {new Date(license.starts_at).toLocaleDateString()}
-            {license.ends_at ? ` · Ends ${new Date(license.ends_at).toLocaleDateString()}` : ''}
-          </p>
-        )}
+        {license?.status === 'EXPIRED' ? (
+          <p className="text-sm text-red-600 mt-2">This license is expired. Some features may be restricted.</p>
+        ) : null}
+        {license?.expiresAt ? <p className="text-xs text-gray-500 mt-1">Expires {new Date(license.expiresAt).toLocaleDateString()}</p> : null}
+
         <div className="mt-4 text-sm text-gray-600 space-y-1">
-          <div>Max members: {license?.license.max_members ?? '-'}</div>
-          <div>Max admins: {license?.license.max_admins ?? '-'}</div>
-          <div>Max posts: {license?.license.max_posts ?? '-'}</div>
-          <div>Max resources: {license?.license.max_resources ?? '-'}</div>
-          <div>Storage limit: {license?.license.max_storage_mb ?? '-'} MB</div>
+          <div>Max members: {license?.plan?.maxMembers ?? '-'}</div>
+          <div>Max admins: {license?.plan?.maxAdmins ?? '-'}</div>
         </div>
+
         <div className="mt-6">
           <a
             href="/pricing"

@@ -7,13 +7,13 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 import { getLicenseToken, getLicenseKey, clearLicenseSession } from '../../utils/licenseToken';
 import { RequireAuth } from '../../components/auth/RequireAuth';
 import { RequireLicenseToken } from '../../components/auth/RequireLicenseToken';
 import { Spinner } from '../../components/ui/Spinner';
+import { apiClient } from '../../lib/apiClient';
 
-type ClaimResult = { success: boolean; slug?: string; error?: string };
+type ClaimResult = { tenant: { slug: string }; redirectSlug: string };
 
 function SetupCommunityForm() {
   const [tenantName, setTenantName] = useState('');
@@ -56,34 +56,26 @@ function SetupCommunityForm() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('claim_license_and_create_tenant', {
-        p_license_key: licenseKey,
-        p_tenant_name: name,
-        p_tenant_slug: slug,
-        p_logo_url: logoUrl.trim() || null,
-        p_category: category.trim() || null,
-        p_location: location.trim() || null
-      }).returns<ClaimResult>();
-
-      if (error) {
-        addToast(error.message ?? 'Failed to create community.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const result = data as ClaimResult | null;
-      if (!result?.success) {
-        addToast(result?.error ?? 'Failed to create community.', 'error');
-        setLoading(false);
-        return;
-      }
+      const result = await apiClient<ClaimResult>('/api/onboarding/claim', {
+        method: 'POST',
+        body: JSON.stringify({
+          licenseKey,
+          tenant: {
+            name,
+            slug,
+            logoUrl: logoUrl.trim() || '',
+            category: category.trim() || '',
+            location: location.trim() || ''
+          }
+        })
+      });
 
       clearLicenseSession();
       addToast('Community created. Welcome to your admin dashboard.', 'success');
-      navigate(`/c/${result.slug}/admin`, { replace: true });
+      navigate(`/c/${result.redirectSlug}/admin`, { replace: true });
     } catch (err) {
       console.error('Claim license error', err);
-      addToast('Something went wrong. Please try again.', 'error');
+      addToast(err instanceof Error ? err.message : 'Something went wrong. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -159,21 +151,10 @@ export function SetupCommunityPage() {
       return;
     }
     const ownerOrAdminMembership = memberships.find(
-      (m) => m.status === 'active' && (m.role === 'owner' || m.role === 'admin')
+      (m) => m.status === 'ACTIVE' && (m.role === 'OWNER' || m.role === 'ADMIN')
     );
     if (ownerOrAdminMembership) {
-      supabase
-        .from('organizations')
-        .select('slug')
-        .eq('id', ownerOrAdminMembership.organization_id)
-        .maybeSingle<{ slug: string }>()
-        .then(({ data }) => {
-          if (data?.slug) {
-            navigate(`/c/${data.slug}/admin`, { replace: true });
-          } else {
-            navigate('/communities', { replace: true });
-          }
-        });
+      navigate('/communities', { replace: true });
     }
   }, [authLoading, user, hasToken, memberships, navigate]);
 

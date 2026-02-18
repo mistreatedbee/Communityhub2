@@ -1,98 +1,48 @@
 import React, { useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useTenant } from '../../contexts/TenantContext';
-import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
-import { EmptyState } from '../../components/ui/EmptyState';
+import { useTenant } from '../../contexts/TenantContext';
+import { tenantFeaturesDelete, tenantFeaturesGet, tenantFeaturesPost } from '../../lib/tenantFeatures';
 
-type GroupRow = {
-  id: string;
-  name: string;
-  description: string | null;
-  is_private: boolean;
-};
+type GroupRow = { _id: string; name: string; description: string };
 
 export function TenantMemberGroupsPage() {
-  const { user } = useAuth();
   const { tenant } = useTenant();
-  const [groups, setGroups] = useState<GroupRow[]>([]);
-  const [memberGroupIds, setMemberGroupIds] = useState<string[]>([]);
+  const [items, setItems] = useState<GroupRow[]>([]);
 
-  const loadGroups = async () => {
-    if (!tenant) return;
-    const { data: groupRows } = await supabase
-      .from('groups')
-      .select('id, name, description, is_private')
-      .eq('organization_id', tenant.id)
-      .returns<GroupRow[]>();
-    const { data: membershipRows } = await supabase
-      .from('group_memberships')
-      .select('group_id')
-      .eq('user_id', user?.id ?? '')
-      .returns<{ group_id: string }[]>();
-    setGroups(groupRows ?? []);
-    setMemberGroupIds(membershipRows?.map((row) => row.group_id) ?? []);
+  const load = async () => {
+    if (!tenant?.id) return;
+    setItems(await tenantFeaturesGet<GroupRow[]>(tenant.id, '/groups'));
   };
 
   useEffect(() => {
-    void loadGroups();
-  }, [tenant?.id, user?.id]);
+    void load();
+  }, [tenant?.id]);
 
-  const handleJoin = async (groupId: string) => {
-    if (!user) return;
-    await supabase.from('group_memberships').upsert({
-      group_id: groupId,
-      user_id: user.id,
-      role: 'member',
-      status: 'active'
-    });
-    await loadGroups();
+  const join = async (groupId: string) => {
+    if (!tenant?.id) return;
+    await tenantFeaturesPost(tenant.id, `/groups/${groupId}/join`, {});
   };
 
-  const handleLeave = async (groupId: string) => {
-    if (!user) return;
-    await supabase.from('group_memberships').delete().eq('group_id', groupId).eq('user_id', user.id);
-    await loadGroups();
+  const leave = async (groupId: string) => {
+    if (!tenant?.id) return;
+    await tenantFeaturesDelete(tenant.id, `/groups/${groupId}/leave`);
   };
-
-  const visibleGroups = groups.filter((group) => !group.is_private || memberGroupIds.includes(group.id));
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
-        <p className="text-gray-500">Join sub-communities to connect with members.</p>
-      </div>
-
-      {visibleGroups.length === 0 ? (
-        <EmptyState icon={Users} title="No groups available" description="Ask an admin to create a group." />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {visibleGroups.map((group) => {
-            const isMember = memberGroupIds.includes(group.id);
-            return (
-              <div key={group.id} className="bg-white border border-gray-200 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-gray-900">{group.name}</h3>
-                <p className="text-sm text-gray-600">{group.description ?? 'No description.'}</p>
-                <div className="mt-3">
-                  {isMember ? (
-                    <Button size="sm" variant="outline" onClick={() => void handleLeave(group.id)}>
-                      Leave group
-                    </Button>
-                  ) : (
-                    !group.is_private && (
-                      <Button size="sm" onClick={() => void handleJoin(group.id)}>
-                        Join group
-                      </Button>
-                    )
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
+      {items.map((group) => (
+        <div key={group._id} className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between gap-3">
+          <div>
+            <p className="font-semibold text-gray-900">{group.name}</p>
+            <p className="text-sm text-gray-600">{group.description}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => void join(group._id)}>Join</Button>
+            <Button size="sm" variant="outline" onClick={() => void leave(group._id)}>Leave</Button>
+          </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }

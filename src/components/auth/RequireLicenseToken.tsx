@@ -1,27 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { getLicenseToken } from '../../utils/licenseToken';
-import { supabase } from '../../lib/supabase';
+import { getLicenseKey } from '../../utils/licenseToken';
+import { apiClient } from '../../lib/apiClient';
 import { Spinner } from '../ui/Spinner';
 
-type ValidateResult = { valid: boolean; plan_name?: string };
+type ValidateResult = { valid: boolean };
 
 export function RequireLicenseToken({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<'loading' | 'valid' | 'invalid'>('loading');
-  const token = getLicenseToken();
+  const licenseKey = getLicenseKey();
 
   useEffect(() => {
-    if (!token) {
+    if (!licenseKey) {
       setStatus('invalid');
       return;
     }
     let mounted = true;
-    supabase
-      .rpc('validate_onboarding_token', { p_token: token })
-      .returns<ValidateResult>()
-      .then(({ data }) => {
+    apiClient<ValidateResult>('/api/licenses/verify', {
+      method: 'POST',
+      body: JSON.stringify({ licenseKey })
+    })
+      .then((data) => {
         if (!mounted) return;
-        setStatus(data?.valid ? 'valid' : 'invalid');
+        setStatus(data.valid ? 'valid' : 'invalid');
       })
       .catch(() => {
         if (mounted) setStatus('invalid');
@@ -29,7 +30,7 @@ export function RequireLicenseToken({ children }: { children: React.ReactNode })
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, [licenseKey]);
 
   if (status === 'loading') {
     return (

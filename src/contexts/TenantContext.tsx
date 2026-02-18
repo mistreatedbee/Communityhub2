@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { getImpersonation } from '../utils/impersonation';
+import { apiClient } from '../lib/apiClient';
 
 type Tenant = {
   id: string;
@@ -16,7 +16,7 @@ type Tenant = {
   category: string | null;
   location: string | null;
   is_public: boolean;
-  status: 'active' | 'pending' | 'suspended';
+  status: 'ACTIVE' | 'SUSPENDED';
 };
 
 type TenantSettings = {
@@ -26,26 +26,21 @@ type TenantSettings = {
 };
 
 type Membership = {
-  organization_id: string;
-  role: 'owner' | 'admin' | 'supervisor' | 'employee' | 'member';
-  status: 'active' | 'inactive' | 'pending';
+  tenantId: string;
+  role: 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
+  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'BANNED';
 };
 
 type TenantLicense = {
-  status: 'trial' | 'active' | 'expired' | 'cancelled';
-  starts_at: string;
-  ends_at: string | null;
-  limits_snapshot: Record<string, unknown>;
-  license: {
+  status: 'ACTIVE' | 'SUSPENDED' | 'EXPIRED' | 'CLAIMED';
+  expiresAt: string | null;
+  limitsSnapshot: Record<string, unknown>;
+  plan: {
     id: string;
     name: string;
-    code: string;
-    max_members: number;
-    max_admins: number;
-    max_storage_mb: number;
-    max_posts: number;
-    max_resources: number;
-    feature_flags: Record<string, boolean>;
+    maxMembers: number;
+    maxAdmins: number;
+    featureFlags: Record<string, boolean>;
   };
 };
 
@@ -75,88 +70,80 @@ export function TenantProvider({ tenantSlug, children }: { tenantSlug: string; c
     setLoading(true);
     setError(null);
 
-    const { data: orgData, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, name, slug, contact_email, logo_url, category, location, is_public, status, primary_color, secondary_color')
-      .eq('slug', tenantSlug)
-      .maybeSingle<Tenant>();
+    try {
+      const data = await apiClient<{
+        tenant: {
+          id: string;
+          name: string;
+          slug: string;
+          logoUrl?: string;
+          category?: string;
+          location?: string;
+          status: 'ACTIVE' | 'SUSPENDED';
+        };
+        settings: {
+          publicSignup: boolean;
+          approvalRequired: boolean;
+          registrationFieldsEnabled: boolean;
+        };
+        license: TenantLicense | null;
+        membership: Membership | null;
+      }>(`/api/tenants/${tenantSlug}/context`);
 
-    if (orgError || !orgData) {
-      if (orgError) {
-        console.error('[TenantContext] Org fetch failed', orgError.code, orgError.message, { tenantSlug });
-      }
-      setTenant(null);
-      setLoading(false);
-      setError(orgError?.message ?? 'Tenant not found');
-      return;
-    }
+      const mappedTenant: Tenant = {
+        id: data.tenant.id,
+        name: data.tenant.name,
+        slug: data.tenant.slug,
+        contact_email: null,
+        logo_url: data.tenant.logoUrl || null,
+        primary_color: null,
+        secondary_color: null,
+        category: data.tenant.category || null,
+        location: data.tenant.location || null,
+        is_public: true,
+        status: data.tenant.status
+      };
 
-    setTenant(orgData);
-    updateTheme({
-      id: orgData.id,
-      name: orgData.name,
-      description: orgData.description ?? undefined,
-      contactEmail: orgData.contact_email ?? undefined,
-      logo: orgData.logo_url ?? undefined,
-      primaryColor: orgData.primary_color ?? undefined,
-      secondaryColor: orgData.secondary_color ?? undefined
-    });
+      setTenant(mappedTenant);
+      updateTheme({
+        id: mappedTenant.id,
+        name: mappedTenant.name,
+        description: mappedTenant.description ?? undefined,
+        contactEmail: mappedTenant.contact_email ?? undefined,
+        logo: mappedTenant.logo_url ?? undefined,
+        primaryColor: mappedTenant.primary_color ?? undefined,
+        secondaryColor: mappedTenant.secondary_color ?? undefined
+      });
 
-    const [{ data: settingsData }, { data: licenseData }] = await Promise.all([
-      supabase
-        .from('tenant_settings')
-        .select('public_signup, approval_required, registration_fields_enabled')
-        .eq('organization_id', orgData.id)
-        .maybeSingle<TenantSettings>(),
-      supabase
-        .from('organization_licenses')
-        .select(
-          'status, starts_at, ends_at, limits_snapshot, license_plan:license_plans(id, name, code, max_members, max_admins, max_storage_mb, max_posts, max_resources, feature_flags)'
-        )
-        .eq('organization_id', orgData.id)
-        .maybeSingle<TenantLicense>()
-    ]);
+      setSettings({
+        public_signup: data.settings.publicSignup,
+        approval_required: data.settings.approvalRequired,
+        registration_fields_enabled: data.settings.registrationFieldsEnabled
+      });
+      setLicense(data.license);
 
-    setSettings(settingsData ?? { public_signup: true, approval_required: false, registration_fields_enabled: true });
-    const licenseMapped = licenseData
-      ? { ...licenseData, license: (licenseData as { license_plan?: TenantLicense['license'] }).license_plan ?? licenseData.license }
-      : null;
-    setLicense(licenseMapped ?? null);
-
-    if (platformRole === 'super_admin') {
-      const impersonation = getImpersonation();
-      if (impersonation?.userId && (!impersonation.tenantId || impersonation.tenantId === orgData.id)) {
-        const { data: impersonatedMembership } = await supabase
-          .from('organization_memberships')
-          .select('organization_id, role, status')
-          .eq('organization_id', orgData.id)
-          .eq('user_id', impersonation.userId)
-          .maybeSingle<Membership>();
-        setMembership(impersonatedMembership ?? {
-          organization_id: orgData.id,
-          role: 'owner',
-          status: 'active'
-        });
+      if (platformRole === 'SUPER_ADMIN') {
+        const impersonation = getImpersonation();
+        if (impersonation?.userId) {
+          setMembership(data.membership);
+        } else {
+          setMembership({
+            tenantId: mappedTenant.id,
+            role: 'OWNER',
+            status: 'ACTIVE'
+          });
+        }
+      } else if (user) {
+        setMembership(data.membership ?? null);
       } else {
-        setMembership({
-          organization_id: orgData.id,
-          role: 'owner',
-          status: 'active'
-        });
+        setMembership(null);
       }
-    } else if (user) {
-      const { data: membershipData } = await supabase
-        .from('organization_memberships')
-        .select('organization_id, role, status')
-        .eq('organization_id', orgData.id)
-        .eq('user_id', user.id)
-        .maybeSingle<Membership>();
-      setMembership(membershipData ?? null);
-    } else {
-      setMembership(null);
+    } catch (e) {
+      setTenant(null);
+      setError(e instanceof Error ? e.message : 'Tenant not found');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   useEffect(() => {

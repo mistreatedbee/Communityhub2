@@ -1,65 +1,89 @@
 import React, { useEffect, useState } from 'react';
-import { Users, FileText, Megaphone, Calendar } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
-import { supabase } from '../../lib/supabase';
-import { StatsCard } from '../../components/widgets/StatsCard';
+import { tenantFeaturesGet } from '../../lib/tenantFeatures';
+import { Card, CardContent, CardHeader } from '../../components/ui/Card';
+
+type DashboardStats = {
+  members: number;
+  pendingRegistrations: number;
+  announcements: number;
+  posts: number;
+  events: number;
+  resources: number;
+  latestPosts: Array<{ _id: string; title: string; publishedAt?: string }>;
+  upcomingEvents: Array<{ _id: string; title: string; startsAt: string }>;
+  recentSignups: Array<{ id: string; joinedAt: string; status: string; user: { fullName?: string; email?: string } | null }>;
+};
 
 export function TenantAdminDashboardPage() {
-  const { tenant, license } = useTenant();
-  const [memberCount, setMemberCount] = useState(0);
-  const [postCount, setPostCount] = useState(0);
-  const [resourceCount, setResourceCount] = useState(0);
-  const [eventCount, setEventCount] = useState(0);
+  const { tenant } = useTenant();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      if (!tenant) return;
-      const [{ count: members }, { count: posts }, { count: resources }, { count: events }] = await Promise.all([
-        supabase
-          .from('organization_memberships')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', tenant.id)
-          .eq('status', 'active'),
-        supabase
-          .from('tenant_posts')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', tenant.id),
-        supabase
-          .from('tenant_resources')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', tenant.id),
-        supabase
-          .from('sessions')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', tenant.id)
-      ]);
-      setMemberCount(members ?? 0);
-      setPostCount(posts ?? 0);
-      setResourceCount(resources ?? 0);
-      setEventCount(events ?? 0);
+      if (!tenant?.id) return;
+      const data = await tenantFeaturesGet<DashboardStats>(tenant.id, '/dashboard');
+      setStats(data);
     };
     void load();
   }, [tenant?.id]);
 
+  if (!tenant) return <p className="text-sm text-gray-500">Tenant not found.</p>;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tenant Admin Overview</h1>
-        <p className="text-gray-500">Manage your community hub and track usage.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Tenant Dashboard</h1>
+        <p className="text-gray-500">Overview for {tenant.name}.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatsCard title="Active Members" value={memberCount.toString()} icon={Users} />
-        <StatsCard title="Posts" value={postCount.toString()} icon={Megaphone} />
-        <StatsCard title="Resources" value={resourceCount.toString()} icon={FileText} />
-        <StatsCard title="Events" value={eventCount.toString()} icon={Calendar} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[
+          ['Total members', stats?.members || 0],
+          ['Pending registrations', stats?.pendingRegistrations || 0],
+          ['Announcements', stats?.announcements || 0],
+          ['Posts', stats?.posts || 0],
+          ['Upcoming events', stats?.events || 0],
+          ['Resources', stats?.resources || 0]
+        ].map(([label, value]) => (
+          <Card key={String(label)}>
+            <CardHeader className="text-sm text-gray-500">{String(label)}</CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-gray-900">{Number(value)}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">License Status</h2>
-        <p className="text-sm text-gray-600">
-          Plan: {license?.license.name ?? 'No plan'} · Status: {license?.status ?? 'unknown'}
-        </p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="text-sm text-gray-500">Latest posts</CardHeader>
+          <CardContent className="space-y-2">
+            {(stats?.latestPosts || []).map((post) => (
+              <p key={post._id} className="text-sm text-gray-700">{post.title}</p>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="text-sm text-gray-500">Upcoming events</CardHeader>
+          <CardContent className="space-y-2">
+            {(stats?.upcomingEvents || []).map((event) => (
+              <p key={event._id} className="text-sm text-gray-700">
+                {event.title} - {new Date(event.startsAt).toLocaleString()}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="text-sm text-gray-500">Recent signups</CardHeader>
+          <CardContent className="space-y-2">
+            {(stats?.recentSignups || []).map((signup) => (
+              <p key={signup.id} className="text-sm text-gray-700">
+                {signup.user?.fullName || signup.user?.email || 'Unknown'} - {signup.status}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

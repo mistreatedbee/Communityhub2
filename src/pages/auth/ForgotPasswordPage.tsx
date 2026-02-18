@@ -4,7 +4,6 @@ import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useTheme } from '../../contexts/ThemeContext';
-import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/ui/Toast';
 export function ForgotPasswordPage() {
   const { organization } = useTheme();
@@ -15,12 +14,10 @@ export function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`
-    });
+    const error = new Error('Password reset is not enabled yet. Contact support.');
     setIsLoading(false);
     if (error) {
-      addToast('Unable to send reset link.', 'error');
+      addToast(error.message, 'error');
       return;
     }
     setIsSuccess(true);

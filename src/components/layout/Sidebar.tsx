@@ -131,6 +131,11 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
       icon: Settings
     },
     {
+      label: 'Settings',
+      href: `${tenantBase}/admin/settings`,
+      icon: Settings
+    },
+    {
       label: 'Analytics',
       href: `${tenantBase}/admin/analytics`,
       icon: BarChart2

@@ -1,361 +1,147 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Search,
-  MoreHorizontal,
-  Plus,
-  Building2,
-  Trash2,
-  Ban,
-  CheckCircle } from
-'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow } from
-'../../components/ui/Table';
-import { Badge } from '../../components/ui/Badge';
-import { Dropdown } from '../../components/ui/Dropdown';
-import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import { Badge } from '../../components/ui/Badge';
+import { apiClient } from '../../lib/apiClient';
 import { useToast } from '../../components/ui/Toast';
-import { supabase } from '../../lib/supabase';
-import { logAudit } from '../../utils/audit';
-type TenantRow = {
+
+type Tenant = {
   id: string;
   name: string;
   slug: string;
-  status: 'active' | 'pending' | 'suspended';
-  created_at: string;
-  organization_licenses: {
-    status: 'trial' | 'active' | 'expired' | 'cancelled';
-    license_plan: { id: string; name: string } | null;
-  }[];
-};
-
-type MembershipRow = {
-  organization_id: string;
-  role: 'owner' | 'admin' | 'supervisor' | 'employee' | 'member';
-  status: 'active' | 'inactive' | 'pending';
-};
-
-type LicenseRow = {
-  id: string;
-  name: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+  createdAt: string;
 };
 
 export function OrganizationsPage() {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [organizations, setOrganizations] = useState<TenantRow[]>([]);
-  const [memberships, setMemberships] = useState<MembershipRow[]>([]);
-  const [plans, setPlans] = useState<LicenseRow[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [adminEmail, setAdminEmail] = useState('');
-  const [planId, setPlanId] = useState('');
 
-  const loadData = async () => {
-    try {
-      const [orgRes, memberRes, planRes] = await Promise.all([
-        supabase
-          .from('organizations')
-          .select('id, name, slug, status, created_at, organization_licenses(status, license_plan:license_plans(id, name))')
-          .order('created_at', { ascending: false })
-          .returns<TenantRow[]>(),
-        supabase
-          .from('organization_memberships')
-          .select('organization_id, role, status')
-          .returns<MembershipRow[]>(),
-        supabase
-          .from('license_plans')
-          .select('id, name')
-          .order('price_cents', { ascending: true })
-          .returns<LicenseRow[]>()
-      ]);
-      if (orgRes.error && import.meta.env.DEV) console.error('[OrganizationsPage] organizations', orgRes.error);
-      if (memberRes.error && import.meta.env.DEV) console.error('[OrganizationsPage] memberships', memberRes.error);
-      if (planRes.error && import.meta.env.DEV) console.error('[OrganizationsPage] license_plans', planRes.error);
-      setOrganizations(orgRes.data ?? []);
-      setMemberships(memberRes.data ?? []);
-      setPlans(planRes.data ?? []);
-      if (!planId && planRes.data?.length) setPlanId(planRes.data[0].id);
-      if (orgRes.error) addToast('Failed to load organizations. Check RLS.', 'error');
-    } catch (e) {
-      if (import.meta.env.DEV) console.error('[OrganizationsPage] loadData', e);
-      addToast('Failed to load data.', 'error');
-    }
+  const load = async () => {
+    const data = await apiClient<Tenant[]>('/api/admin/tenants');
+    setTenants(data);
   };
 
   useEffect(() => {
-    void loadData();
+    void load();
   }, []);
 
-  const handleStatusChange = async (id: string, newStatus: 'active' | 'suspended') => {
-    const { error } = await supabase.from('organizations').update({ status: newStatus }).eq('id', id);
-    if (error) {
-      addToast(error.message ? `Unable to update status: ${error.message}` : 'Unable to update status.', 'error');
-      return;
-    }
-    await logAudit('tenant_status_changed', id, { status: newStatus });
-    addToast(`Tenant ${newStatus === 'active' ? 'activated' : 'suspended'}.`, 'success');
-    await loadData();
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this tenant?')) return;
-    const { error } = await supabase.from('organizations').delete().eq('id', id);
-    if (error) {
-      addToast(error.message ? `Unable to delete tenant: ${error.message}` : 'Unable to delete tenant.', 'error');
-      return;
-    }
-    await logAudit('tenant_deleted', id, {});
-    addToast('Tenant deleted.', 'success');
-    await loadData();
-  };
-
-  const handleCreate = async () => {
-    const trimmedName = name.trim();
-    const trimmedSlug = slug.trim().toLowerCase();
-    const trimmedEmail = adminEmail.trim().toLowerCase();
-    if (!trimmedName || !trimmedSlug || !trimmedEmail) {
-      addToast('Name, slug, and admin email are required.', 'error');
-      return;
-    }
-    const { data: tenantData, error: orgError } = await supabase
-      .from('organizations')
-      .insert({
-        name: trimmedName,
-        slug: trimmedSlug,
-        status: 'active'
-      })
-      .select('id')
-      .maybeSingle<{ id: string }>();
-    if (orgError || !tenantData) {
-      addToast(orgError?.message ? `Unable to create tenant: ${orgError.message}` : 'Unable to create tenant.', 'error');
-      return;
-    }
-    const { error: licenseError } = await supabase.from('organization_licenses').insert({
-      organization_id: tenantData.id,
-      license_id: planId,
-      status: 'trial'
-    });
-    if (licenseError) {
-      addToast(licenseError.message ? `License assignment failed: ${licenseError.message}` : 'License assignment failed.', 'error');
-      await loadData();
-      return;
-    }
-    const { error: settingsError } = await supabase.from('tenant_settings').insert({
-      organization_id: tenantData.id
-    });
-    if (settingsError) {
-      addToast(settingsError.message ? `Tenant settings failed: ${settingsError.message}` : 'Tenant settings failed.', 'error');
-    }
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('email', trimmedEmail)
-      .maybeSingle<{ user_id: string }>();
-    if (existingProfile?.user_id) {
-      const { error: memberError } = await supabase.from('organization_memberships').insert({
-        organization_id: tenantData.id,
-        user_id: existingProfile.user_id,
-        role: 'owner',
-        status: 'active'
-      });
-      if (memberError) {
-        addToast(memberError.message ? `Owner membership failed: ${memberError.message}` : 'Owner membership failed.', 'error');
-      }
-    }
-    const { error: invError } = await supabase.from('invitations').insert({
-      organization_id: tenantData.id,
-      email: trimmedEmail,
-      role: existingProfile?.user_id ? 'owner' : 'admin',
-      token: crypto.randomUUID(),
-      expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString()
-    });
-    if (invError) {
-      addToast(invError.message ? `Invitation failed: ${invError.message}` : 'Invitation failed.', 'error');
-    }
-    await logAudit('tenant_created', tenantData.id, { name: trimmedName, slug: trimmedSlug, planId });
-    addToast('Tenant created.', 'success');
-    setIsCreateModalOpen(false);
-    setName('');
-    setSlug('');
-    setAdminEmail('');
-    await loadData();
-  };
-
-  const filteredOrgs = useMemo(
-    () => organizations.filter((org) => org.name.toLowerCase().includes(searchTerm.toLowerCase())),
-    [organizations, searchTerm]
+  const filtered = useMemo(
+    () => tenants.filter((t) => t.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [tenants, searchTerm]
   );
+
+  const createTenant = async () => {
+    try {
+      await apiClient('/api/admin/tenants', {
+        method: 'POST',
+        body: JSON.stringify({ name, slug })
+      });
+      addToast('Tenant created.', 'success');
+      setIsCreateOpen(false);
+      setName('');
+      setSlug('');
+      await load();
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Failed to create tenant', 'error');
+    }
+  };
+
+  const toggleStatus = async (tenant: Tenant) => {
+    const nextStatus = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    await apiClient(`/api/admin/tenants/${tenant.id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: nextStatus })
+    });
+    await load();
+  };
+
+  const removeTenant = async (id: string) => {
+    if (!window.confirm('Delete this tenant?')) return;
+    await apiClient(`/api/admin/tenants/${id}`, { method: 'DELETE' });
+    await load();
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tenants</h1>
-          <p className="text-gray-500">
-            Manage all tenants on the platform.
-          </p>
+          <p className="text-gray-500">Manage all tenants on the platform.</p>
         </div>
-        <Button
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsCreateModalOpen(true)}>
-
-          New Organization
+        <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setIsCreateOpen(true)}>
+          New Tenant
         </Button>
       </div>
 
       <Card>
-        <div className="p-4 border-b border-gray-100 flex gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search organizations..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} />
-
-          </div>
+        <div className="p-4 border-b border-gray-100">
+          <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search tenants" />
         </div>
-
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeader>Name</TableHeader>
-                <TableHeader>Plan</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader>Members</TableHeader>
-                <TableHeader>Admins</TableHeader>
-                <TableHeader>Created</TableHeader>
-                <TableHeader>Actions</TableHeader>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeader>Name</TableHeader>
+              <TableHeader>Slug</TableHeader>
+              <TableHeader>Status</TableHeader>
+              <TableHeader>Created</TableHeader>
+              <TableHeader>Actions</TableHeader>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filtered.map((tenant) => (
+              <TableRow key={tenant.id}>
+                <TableCell>
+                  <Link className="text-[var(--color-primary)] hover:underline" to={`/super-admin/tenants/${tenant.id}`}>
+                    {tenant.name}
+                  </Link>
+                </TableCell>
+                <TableCell>{tenant.slug}</TableCell>
+                <TableCell>
+                  <Badge variant={tenant.status === 'ACTIVE' ? 'success' : 'danger'}>{tenant.status}</Badge>
+                </TableCell>
+                <TableCell>{new Date(tenant.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell className="space-x-2">
+                  <Button size="sm" variant="ghost" onClick={() => void toggleStatus(tenant)}>
+                    {tenant.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-red-600" onClick={() => void removeTenant(tenant.id)}>
+                    Delete
+                  </Button>
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredOrgs.map((org) =>
-              <TableRow key={org.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-600 font-bold">
-                        {org.name.charAt(0)}
-                      </div>
-                      <div className="font-medium text-gray-900">
-                        {org.name}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{org.organization_licenses?.[0]?.license_plan?.name ?? 'No plan'}</TableCell>
-                  <TableCell>
-                    <Badge
-                    variant={
-                    org.status === 'active' ?
-                    'success' :
-                    'danger'
-                    }>
-
-                      {org.status.charAt(0).toUpperCase() + org.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {memberships.filter((m) => m.organization_id === org.id && m.status === 'active').length}
-                  </TableCell>
-                  <TableCell>
-                    {memberships.filter((m) => m.organization_id === org.id && m.status === 'active' && (m.role === 'admin' || m.role === 'owner')).length}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(org.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Dropdown
-                    align="right"
-                    trigger={
-                    <button className="p-1 text-gray-400 hover:text-gray-600">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                    }
-                    items={[
-                    {
-                      label: 'View Details',
-                      href: `/super-admin/tenants/${org.id}`,
-                      icon: <Building2 className="w-4 h-4" />
-                    },
-                    {
-                      label: org.status === 'suspended' ? 'Activate' : 'Suspend',
-                      onClick: () =>
-                      handleStatusChange(
-                        org.id,
-                        org.status === 'suspended' ?
-                        'active' :
-                        'suspended'
-                      ),
-                      icon:
-                      org.status === 'suspended' ?
-                      <CheckCircle className="w-4 h-4" /> :
-
-                      <Ban className="w-4 h-4" />
-
-                    },
-                    {
-                      label: 'Delete',
-                      danger: true,
-                      onClick: () => handleDelete(org.id),
-                      icon: <Trash2 className="w-4 h-4" />
-                    }]
-                    } />
-
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </Card>
 
       <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Tenant"
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Create Tenant"
         footer={
-        <>
-            <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)}>
+          <>
+            <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
               Cancel
             </Button>
-            <Button
-            onClick={() => void handleCreate()}>
-              Create Tenant
-            </Button>
+            <Button onClick={() => void createTenant()}>Create</Button>
           </>
-        }>
-
+        }
+      >
         <div className="space-y-4">
-          <Input label="Tenant Name" placeholder="e.g. Acme Community" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input label="Tenant Slug" placeholder="acme" value={slug} onChange={(e) => setSlug(e.target.value)} />
-          <Input label="Admin Email" type="email" placeholder="admin@example.com" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
-            <select
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-              value={planId}
-              onChange={(e) => setPlanId(e.target.value)}
-            >
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input label="Slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} />
         </div>
       </Modal>
-    </div>);
-
+    </div>
+  );
 }

@@ -1,35 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, MessageCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { apiClient } from '../../lib/apiClient';
 import { setLicenseToken } from '../../utils/licenseToken';
 
 type VerifyResult = {
   valid: boolean;
-  token?: string;
-  plan_name?: string;
-  error?: string;
-  status?: string;
+  plan?: { name: string };
 };
+
+const whatsappHref =
+  'https://wa.me/27731531188?text=Hi%20Ashley%2C%20I%E2%80%99d%20like%20to%20purchase%20a%20Community%20Hub%20license%E2%80%A6';
 
 export function EnterLicensePage() {
   const [licenseKey, setLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { organization } = useTheme();
   const { user, loading: authLoading, platformRole } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  // Super admins log in with email/password only – no license needed
   useEffect(() => {
     if (authLoading || !user) return;
-    if (platformRole === 'super_admin') {
+    if (platformRole === 'SUPER_ADMIN') {
       navigate('/super-admin', { replace: true });
     }
   }, [authLoading, user, platformRole, navigate]);
@@ -41,30 +41,30 @@ export function EnterLicensePage() {
       addToast('Please enter your license key.', 'error');
       return;
     }
+    setError(null);
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('verify_license', { license_key: key }).returns<VerifyResult>();
+      const result = await apiClient<VerifyResult>('/api/licenses/verify', {
+        method: 'POST',
+        body: JSON.stringify({ licenseKey: key })
+      });
 
-      if (error) {
-        addToast(error.message ?? 'Verification failed.', 'error');
-        setLoading(false);
+      if (!result?.valid) {
+        const msg = 'License invalid, expired, or already claimed.';
+        setError(msg);
+        addToast(msg, 'error');
         return;
       }
 
-      const result = data as VerifyResult | null;
-      if (!result?.valid || !result.token) {
-        addToast(result?.error ?? 'Invalid or expired license key.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      setLicenseToken(result.token, key);
-      addToast(result.plan_name ? `License verified: ${result.plan_name}. Continue to sign up.` : 'License verified. Continue to sign up.', 'success');
+      setLicenseToken(key, key);
+      addToast(result.plan?.name ? `License verified: ${result.plan.name}. Continue to sign up.` : 'License verified. Continue to sign up.', 'success');
       navigate('/signup', { replace: true });
     } catch (err) {
       console.error('Verify license error', err);
-      addToast('Something went wrong. Please try again.', 'error');
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      setError(msg);
+      addToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -81,10 +81,10 @@ export function EnterLicensePage() {
         </Link>
         <h2 className="text-3xl font-bold tracking-tight text-gray-900">Enter your license key</h2>
         <p className="mt-2 text-sm text-gray-600">
-          You need a valid license to create a community. Enter the key you received below.
+          A license is required to create and manage your own community hub.
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          Super admins: <Link to="/login" className="font-medium text-[var(--color-primary)]">Sign in</Link> with email and password — no license required.
+          Existing admin? <Link to="/login" className="font-medium text-[var(--color-primary)]">Log in</Link>
         </p>
       </div>
 
@@ -92,10 +92,11 @@ export function EnterLicensePage() {
         <Card className="shadow-xl border-0 ring-1 ring-gray-200">
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
               <Input
                 label="License key"
                 type="text"
-                placeholder="XXXX-XXXX-XXXX-XXXX"
+                placeholder="CH-XXXXX-XXXXX-XXXXX-XXXXX"
                 value={licenseKey}
                 onChange={(e) => setLicenseKey(e.target.value)}
                 autoComplete="off"
@@ -105,9 +106,12 @@ export function EnterLicensePage() {
                 Verify and continue
               </Button>
             </form>
-            <p className="mt-4 text-center text-sm text-gray-500">
-              Already have an account? <Link to="/login" className="font-medium text-[var(--color-primary)]">Sign in</Link>
-            </p>
+            <div className="mt-4 text-center text-sm text-gray-500 space-y-2">
+              <p>Need a new license?</p>
+              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="inline-flex">
+                <Button variant="outline" leftIcon={<MessageCircle className="w-4 h-4" />}>Contact Sales</Button>
+              </a>
+            </div>
           </CardContent>
         </Card>
       </div>

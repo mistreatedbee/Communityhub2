@@ -20,12 +20,15 @@ import { HomePage } from './pages/public/HomePage';
 import { CommunitiesPage } from './pages/public/CommunitiesPage';
 import { TenantPublicPage } from './pages/public/TenantPublicPage';
 import { TenantJoinPage } from './pages/public/TenantJoinPage';
+import { TenantPendingPage } from './pages/public/TenantPendingPage';
 import { PricingPage } from './pages/public/PricingPage';
 import { LoginPage } from './pages/auth/LoginPage';
+import { AdminEntryPage } from './pages/auth/AdminEntryPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { EnterLicensePage } from './pages/auth/EnterLicensePage';
 import { SignupPage } from './pages/auth/SignupPage';
 import { SetupCommunityPage } from './pages/auth/SetupCommunityPage';
+import { ContactSalesPage } from './pages/public/ContactSalesPage';
 import { TenantMemberFeedPage } from './pages/tenant-member/TenantMemberFeedPage';
 import { TenantMemberAnnouncementsPage } from './pages/tenant-member/TenantMemberAnnouncementsPage';
 import { TenantMemberResourcesPage } from './pages/tenant-member/TenantMemberResourcesPage';
@@ -47,6 +50,7 @@ import { TenantAdminRegistrationFormPage } from './pages/tenant-admin/TenantAdmi
 import { TenantAdminAnalyticsPage } from './pages/tenant-admin/TenantAdminAnalyticsPage';
 import { TenantAdminBillingPage } from './pages/tenant-admin/TenantAdminBillingPage';
 import { TenantAdminOnboardingPage } from './pages/tenant-admin/TenantAdminOnboardingPage';
+import { TenantAdminSettingsPage } from './pages/tenant-admin/TenantAdminSettingsPage';
 import { SuperAdminDashboardPage } from './pages/super-admin/SuperAdminDashboardPage';
 import { OrganizationsPage } from './pages/super-admin/OrganizationsPage';
 import { TenantDetailPage } from './pages/super-admin/TenantDetailPage';
@@ -69,12 +73,15 @@ export function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/communities" element={<CommunitiesPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/contact-sales" element={<ContactSalesPage />} />
               <Route element={<TenantRouteProvider />}>
                 <Route path="/c/:tenantSlug" element={<TenantPublicPage />} />
                 <Route path="/c/:tenantSlug/join" element={<TenantJoinPage />} />
+                <Route path="/c/:tenantSlug/pending" element={<TenantPendingPage />} />
               </Route>
               </Route>
 
+              <Route path="/admin" element={<AdminEntryPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/enter-license" element={<EnterLicensePage />} />
               <Route path="/signup" element={<SignupPage />} />
@@ -126,6 +133,7 @@ export function App() {
                   <Route path="events" element={<TenantAdminEventsPage />} />
                   <Route path="programs" element={<TenantAdminProgramsPage />} />
                   <Route path="registration-form" element={<TenantAdminRegistrationFormPage />} />
+                  <Route path="settings" element={<TenantAdminSettingsPage />} />
                   <Route path="analytics" element={<TenantAdminAnalyticsPage />} />
                   <Route path="billing" element={<TenantAdminBillingPage />} />
                 </Route>

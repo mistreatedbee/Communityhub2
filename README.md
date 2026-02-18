@@ -1,82 +1,62 @@
 # CommunityHub
 
-A professional community management platform for South African organizations.
+CommunityHub is now fully migrated off Supabase to a MongoDB + Express backend with JWT auth.
 
-## Getting Started
+## Project structure
+- `src/` React + React Router frontend
+- `server/` Render-ready Node/Express API (TypeScript)
 
-1. Run `npm install`
-2. Run `npm run dev`
+## Local development
+1. Install frontend deps: `npm install`
+2. Install backend deps: `npm --prefix server install`
+3. Start backend: `npm --prefix server run dev`
+4. Start frontend: `npm run dev`
 
-### Super Admin access
+## Required env vars
+### Frontend (`.env` in repo root)
+- `VITE_API_URL=http://localhost:4000`
 
-- **New install:** The first user who signs up is automatically given the `super_admin` role.
-- **Existing user:** To promote your account to super admin, run in the Supabase SQL Editor (Dashboard → SQL Editor):
+### Backend (`server/.env` on Render or local shell)
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN=7d`
+- `CLIENT_ORIGIN=http://localhost:5173` (or Vercel domain in prod)
+- `NODE_ENV=production` (in production)
+- `PORT=4000` (Render injects this automatically)
 
-  ```sql
-  update public.profiles set platform_role = 'super_admin' where email = 'your@email.com';
-  ```
+## Key backend endpoints
+- `GET /health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+- `GET /api/admin/overview`
+- `GET /api/admin/users`
+- `GET /api/admin/tenants`
+- `POST /api/admin/tenants`
+- `PUT /api/admin/tenants/:id/status`
+- `DELETE /api/admin/tenants/:id`
+- `POST /api/plans`
+- `GET /api/plans`
+- `PUT /api/plans/:id`
+- `DELETE /api/plans/:id`
+- `POST /api/licenses/generate`
+- `GET /api/licenses`
+- `PUT /api/licenses/:id/suspend`
+- `POST /api/licenses/verify`
+- `POST /api/onboarding/claim`
+- `GET /api/tenants/public`
+- `GET /api/tenants/:slug`
+- `GET /api/tenants/:slug/context`
+- `POST /api/tenants/:tenantId/join`
+- `GET /api/profile`
+- `PUT /api/profile`
+- `GET /api/audit`
 
-  Replace `your@email.com` with your actual email. Then log out and log in again; you will be redirected to `/super-admin`.
+## Super admin bootstrap
+Create or promote super admin from `server/`:
+- Create/reset: `npm run seed:super-admin`
+- Promote existing by email: `npm run promote:super-admin -- user@example.com`
 
-### Migrating to a new Supabase project
-
-1. Update `.env`: set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `DATABASE_URL` to the new project.
-2. Apply schema: from this repo run `npm run migrate` (requires `DATABASE_URL` and `pg`). Or in the new project’s **Supabase Dashboard → SQL Editor**, run each file in `supabase/migrations/` in filename order.
-3. In the new project, create your first user in **Authentication → Users** (or sign up from the app), then set them as super admin (see “Super Admin access” above).
-
-### Vercel deployment
-
-- **Root Directory:** Leave empty (code is at repo root).
-- **Environment variables:** Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel project settings.
-
-## Architecture Overview
-
-### Tenant Isolation
-- Each tenant is represented by a row in `organizations` and all tenant data is scoped by `organization_id`.
-- Supabase Row Level Security (RLS) enforces tenant isolation on every tenant-scoped table.
-- Super admins bypass tenant RLS via `is_platform_super_admin()`.
-
-### Routing
-Path-based tenancy:
-- Public directory: `/communities`
-- Tenant public profile: `/c/:tenantSlug`
-- Tenant join/register: `/c/:tenantSlug/join`
-- Tenant member app: `/c/:tenantSlug/app`
-- Tenant admin app: `/c/:tenantSlug/admin`
-- Super admin console: `/super-admin`
-
-### Permissions (RBAC)
-Roles:
-- `super_admin` (platform owner)
-- `owner` / `admin` / `supervisor` (tenant admin/staff)
-- `member` (tenant member)
-
-Guards:
-- `RequireSuperAdmin` protects platform routes.
-- `RequireTenantRole` protects tenant admin and member routes.
-
-### Licensing
-Plans live in `licenses` with limits and feature flags. Tenants have `organization_licenses` for status and dates.
-Plan limits are enforced in the UI and via database constraints/triggers where applicable.
-
-## Completion Checklist
-
-- [x] Multi-tenant data model with RLS isolation
-- [x] Super admin dashboard + tenant management
-- [x] License plan CRUD and assignment
-- [x] Tenant admin onboarding wizard
-- [x] Tenant member join flow with approval gating
-- [x] Tenant admin content + resource management
-- [x] Member feed, resources, notifications, profile
-- [x] Groups, events, and programs modules
-- [x] Announcements management and member view
-- [x] Audit logs for sensitive actions
-- [x] Tests for permission guards
-
-## Phase 2 Ideas
-- Stripe billing integration + webhooks
-- File uploads via Supabase Storage
-- Advanced analytics dashboards
-- Custom domain mapping
-- Invitation emails + transactional email templates
-- SSO for enterprise plans
+See `server/README.md` for full Render deployment setup.  
+Domain **mycommunityhub.co.za**: see [DOMAINS.md](./DOMAINS.md) for registrar details and Vercel/DNS setup.

@@ -1,112 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, Users, Building2, DollarSign } from 'lucide-react';
 import { StatsCard } from '../../components/widgets/StatsCard';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card';
-import { supabase } from '../../lib/supabase';
+import { Card, CardContent, CardHeader } from '../../components/ui/Card';
+import { apiClient } from '../../lib/apiClient';
+
+type Overview = { users: number; tenants: number; activeLicenses: number };
+type License = { status: string };
+
 export function SystemAnalyticsPage() {
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [mrr, setMrr] = useState(0);
-  const [activeTenants, setActiveTenants] = useState(0);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [planBreakdown, setPlanBreakdown] = useState<Record<string, number>>({});
+  const [overview, setOverview] = useState<Overview>({ users: 0, tenants: 0, activeLicenses: 0 });
+  const [licenses, setLicenses] = useState<License[]>([]);
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const [licRes, orgRes, profileRes] = await Promise.all([
-          supabase
-            .from('organization_licenses')
-            .select('status, license_plan:license_plans(name, price_cents)')
-            .in('status', ['active', 'trial']),
-          supabase
-            .from('organizations')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'active'),
-          supabase.from('profiles').select('user_id', { count: 'exact', head: true })
-        ]);
-        if (licRes.error && import.meta.env.DEV) console.error('[SystemAnalyticsPage] organization_licenses', licRes.error);
-        if (orgRes.error && import.meta.env.DEV) console.error('[SystemAnalyticsPage] organizations', orgRes.error);
-        if (profileRes.error && import.meta.env.DEV) console.error('[SystemAnalyticsPage] profiles', profileRes.error);
-
-        const activeLicenses = licRes.data ?? [];
-        const revenue = activeLicenses.reduce((sum, row: { license_plan?: { price_cents?: number } }) => sum + (row.license_plan?.price_cents ?? 0), 0);
-        setMrr(revenue / 100);
-        setTotalRevenue(revenue / 100);
-        setActiveTenants(orgRes.count ?? 0);
-        setTotalUsers(profileRes.count ?? 0);
-
-        const breakdown = activeLicenses.reduce<Record<string, number>>((acc, row: { license_plan?: { name?: string; price_cents?: number } }) => {
-          const name = row.license_plan?.name ?? 'Unknown';
-          acc[name] = (acc[name] ?? 0) + (row.license_plan?.price_cents ?? 0);
-          return acc;
-        }, {});
-        setPlanBreakdown(breakdown);
-      } catch (e) {
-        if (import.meta.env.DEV) console.error('[SystemAnalyticsPage] load', e);
-      }
+      const [ov, l] = await Promise.all([
+        apiClient<Overview>('/api/admin/overview'),
+        apiClient<License[]>('/api/licenses')
+      ]);
+      setOverview(ov);
+      setLicenses(l);
     };
     void load();
   }, []);
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Analytics</h1>
-          <p className="text-gray-500">
-            Platform-wide performance metrics and growth stats.
-          </p>
-        </div>
-        <div className="text-sm text-gray-500">All Time</div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">System Analytics</h1>
+        <p className="text-gray-500">Platform metrics snapshot.</p>
       </div>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          label="Total Revenue"
-          value={`R${totalRevenue.toFixed(0)}`}
-          icon={DollarSign}
-          color="green" />
-
-        <StatsCard
-          label="MRR"
-          value={`R${mrr.toFixed(0)}`}
-          icon={TrendingUp}
-          color="blue" />
-
-        <StatsCard
-          label="Active Orgs"
-          value={activeTenants.toString()}
-          icon={Building2}
-          color="purple" />
-
-        <StatsCard
-          label="Total Users"
-          value={totalUsers.toString()}
-          icon={Users}
-          color="orange" />
-
+        <StatsCard label="Total Revenue" value="N/A" icon={DollarSign} color="green" />
+        <StatsCard label="Active Licenses" value={String(overview.activeLicenses)} icon={TrendingUp} color="blue" />
+        <StatsCard label="Tenants" value={String(overview.tenants)} icon={Building2} color="purple" />
+        <StatsCard label="Users" value={String(overview.users)} icon={Users} color="orange" />
       </div>
 
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-bold text-gray-900">Revenue by Plan</h3>
+          <h3 className="text-lg font-bold text-gray-900">License Status Breakdown</h3>
         </CardHeader>
         <CardContent>
-          {Object.keys(planBreakdown).length === 0 ? (
-            <p className="text-sm text-gray-500">No active licenses yet.</p>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(planBreakdown).map(([planName, amount]) => (
-                <div key={planName} className="flex justify-between text-sm text-gray-700">
-                  <span>{planName}</span>
-                  <span>R{(amount / 100).toFixed(0)}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="text-sm text-gray-600">Total licenses: {licenses.length}</p>
         </CardContent>
       </Card>
-    </div>);
-
+    </div>
+  );
 }

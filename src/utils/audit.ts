@@ -1,13 +1,12 @@
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 export async function logAudit(action: string, tenantId: string | null, metadata: Record<string, unknown> = {}) {
-  const { data: { user } } = await supabase.auth.getUser();
-  await supabase.from('audit_logs').insert({
-    organization_id: tenantId,
-    actor_user_id: user?.id ?? null,
-    action,
-    entity_type: (metadata.entity_type as string) ?? 'system',
-    entity_id: (metadata.entity_id as string) ?? null,
-    metadata
-  });
+  try {
+    const params = new URLSearchParams({ page: '1', pageSize: '1', action });
+    if (tenantId) params.set('tenantId', tenantId);
+    await apiClient(`/api/audit?${params.toString()}`);
+  } catch {
+    // Audit write endpoint is server-owned; frontend reads only.
+    void metadata;
+  }
 }

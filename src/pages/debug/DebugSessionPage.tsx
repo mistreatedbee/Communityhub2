@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 
 /**
  * Debug page to verify session and profile state.
@@ -13,13 +12,11 @@ export function DebugSessionPage() {
   const [directSession, setDirectSession] = useState<{ expires_at?: number; hasSession: boolean } | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setDirectSession({
-        hasSession: !!data.session,
-        expires_at: data.session?.expires_at
-      });
+    setDirectSession({
+      hasSession: !!session,
+      expires_at: undefined
     });
-  }, []);
+  }, [session]);
 
   if (loading && !user) {
     return (

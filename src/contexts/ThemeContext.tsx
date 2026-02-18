@@ -10,7 +10,8 @@ const defaultOrg: Organization = {
   primaryColor: '#3B82F6',
   secondaryColor: '#10B981',
   description: 'A place for communities to grow and thrive together.',
-  contactEmail: 'contact@communityhub.com'
+  contactEmail: 'contact@communityhub.com',
+  logo: '/logo.svg'
 };
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: {children: React.ReactNode;}) {

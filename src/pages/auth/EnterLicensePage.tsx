@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { KeyRound, MessageCircle } from 'lucide-react';
+import { KeyRound, MessageCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -70,9 +70,20 @@ export function EnterLicensePage() {
     }
   };
 
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
+      <div className="absolute top-4 left-4 sm:left-6">
+        <button type="button" onClick={goBack} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+      </div>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8 px-4">
         <Link to="/" className="inline-flex items-center gap-2 mb-6">
           <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-xl shadow-lg">
             {organization.name.charAt(0)}
@@ -88,9 +99,9 @@ export function EnterLicensePage() {
         </p>
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="shadow-xl border-0 ring-1 ring-gray-200">
-          <CardContent className="p-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-4">
+        <Card className="shadow-lg border border-gray-200 rounded-xl bg-white">
+          <CardContent className="p-6 sm:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
               <Input

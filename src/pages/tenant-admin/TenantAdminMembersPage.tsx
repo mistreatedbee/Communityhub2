@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesGet, tenantFeaturesPut } from '../../lib/tenantFeatures';
 
@@ -12,12 +14,7 @@ type Member = {
   profile?: { fullName?: string; phone?: string; customFields?: Record<string, unknown> };
 };
 
-const nextRole: Record<Member['role'], Member['role']> = {
-  OWNER: 'ADMIN',
-  ADMIN: 'MODERATOR',
-  MODERATOR: 'MEMBER',
-  MEMBER: 'ADMIN'
-};
+const ROLES: Member['role'][] = ['MEMBER', 'MODERATOR', 'ADMIN', 'OWNER'];
 
 const statusCycle: Record<Member['status'], Member['status']> = {
   PENDING: 'ACTIVE',
@@ -28,7 +25,11 @@ const statusCycle: Record<Member['status'], Member['status']> = {
 
 export function TenantAdminMembersPage() {
   const { tenant } = useTenant();
+  const { addToast } = useToast();
   const [items, setItems] = useState<Member[]>([]);
+  const [roleModalMember, setRoleModalMember] = useState<Member | null>(null);
+  const [roleModalValue, setRoleModalValue] = useState<Member['role']>('MEMBER');
+  const [roleSaving, setRoleSaving] = useState(false);
 
   const load = async () => {
     if (!tenant?.id) return;
@@ -40,22 +41,41 @@ export function TenantAdminMembersPage() {
     void load();
   }, [tenant?.id]);
 
-  const cycleRole = async (member: Member) => {
-    if (!tenant?.id || !member.userId?._id) return;
-    await tenantFeaturesPut(tenant.id, `/members/${member.userId._id}`, {
-      role: nextRole[member.role],
-      status: member.status
-    });
-    await load();
+  const openRoleModal = (member: Member) => {
+    setRoleModalMember(member);
+    setRoleModalValue(member.role);
+  };
+
+  const saveRole = async () => {
+    if (!tenant?.id || !roleModalMember?.userId?._id) return;
+    setRoleSaving(true);
+    try {
+      await tenantFeaturesPut(tenant.id, `/members/${roleModalMember.userId._id}`, {
+        role: roleModalValue,
+        status: roleModalMember.status
+      });
+      addToast('Role updated', 'success');
+      await load();
+      setRoleModalMember(null);
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Failed to update role', 'error');
+    } finally {
+      setRoleSaving(false);
+    }
   };
 
   const cycleStatus = async (member: Member) => {
     if (!tenant?.id || !member.userId?._id) return;
-    await tenantFeaturesPut(tenant.id, `/members/${member.userId._id}`, {
-      role: member.role,
-      status: statusCycle[member.status]
-    });
-    await load();
+    try {
+      await tenantFeaturesPut(tenant.id, `/members/${member.userId._id}`, {
+        role: member.role,
+        status: statusCycle[member.status]
+      });
+      addToast('Status updated', 'success');
+      await load();
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Failed to update status', 'error');
+    }
   };
 
   const exportCsv = () => {
@@ -100,13 +120,44 @@ export function TenantAdminMembersPage() {
                 <p className="text-xs text-gray-500">Joined {new Date(member.joinedAt).toLocaleString()}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => void cycleRole(member)}>Change role</Button>
+                <Button variant="outline" onClick={() => openRoleModal(member)}>Change role</Button>
                 <Button variant="ghost" onClick={() => void cycleStatus(member)}>Change status</Button>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      <Modal
+        isOpen={!!roleModalMember}
+        onClose={() => setRoleModalMember(null)}
+        title="Change role"
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setRoleModalMember(null)}>Cancel</Button>
+            <Button onClick={() => void saveRole()} isLoading={roleSaving}>Save</Button>
+          </>
+        }
+      >
+        {roleModalMember && (
+          <>
+            <p className="text-sm text-gray-600 mb-3">
+              {roleModalMember.profile?.fullName || roleModalMember.userId?.fullName || roleModalMember.userId?.email || 'Unknown'}
+            </p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select
+              className="w-full rounded-lg border border-gray-300 p-2 text-sm"
+              value={roleModalValue}
+              onChange={(e) => setRoleModalValue(e.target.value as Member['role'])}
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

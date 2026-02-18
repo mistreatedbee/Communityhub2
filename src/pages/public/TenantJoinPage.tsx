@@ -55,6 +55,7 @@ export function TenantJoinPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [registrationStep, setRegistrationStep] = useState<'idle' | 'registering' | 'joining'>('idle');
+  const [joinBlockedInviteRequired, setJoinBlockedInviteRequired] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -64,6 +65,7 @@ export function TenantJoinPage() {
         const query = inviteToken ? `?invite=${encodeURIComponent(inviteToken)}` : '';
         const data = await apiClient<JoinInfo>(`/api/tenants/${tenantSlug}/join-info${query}`);
         setJoinInfo(data);
+        setJoinBlockedInviteRequired(false);
         // Pre-fill email from invitation if available
         if (data.invitation?.email) {
           setEmail(data.invitation.email);
@@ -195,6 +197,9 @@ export function TenantJoinPage() {
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unable to join';
       addToast(errorMsg, 'error');
+      if (errorMsg.toLowerCase().includes('public signup') || errorMsg.toLowerCase().includes('invitation') || errorMsg.toLowerCase().includes('invite')) {
+        setJoinBlockedInviteRequired(true);
+      }
     } finally {
       setLoading(false);
       setRegistrationStep('idle');
@@ -218,18 +223,28 @@ export function TenantJoinPage() {
   }
 
   const allowJoin = joinInfo.allowJoin !== false;
+  const showInviteRequired = !allowJoin || joinBlockedInviteRequired;
   const stepHint = !user ? 'Step 1: Create account' : 'Step 2: Complete your profile';
 
-  if (!allowJoin) {
+  if (showInviteRequired) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Join {tenant.name}</h1>
-          <p className="text-gray-500 mt-1">This community requires an invitation to join.</p>
+          <p className="text-gray-500 mt-1">Public signup is disabled for this community.</p>
         </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800 space-y-3">
           <p className="font-medium">Invite required</p>
-          <p className="text-sm mt-1">You need an invitation link to join this community. Please request one from the community admin or use the link you received.</p>
+          <p className="text-sm">
+            You need an invitation link to join. Ask the community admin for an invite, or use the link you received by email.
+          </p>
+          <p className="text-sm pt-2 border-t border-amber-200 mt-3">
+            <strong>Community admins:</strong> To allow anyone to join without an invite, go to{' '}
+            <a href={`/c/${tenantSlug}/admin/settings`} className="font-medium underline hover:no-underline">
+              Settings → Registration settings
+            </a>
+            {' '}and turn on &quot;Allow directory/public signup&quot;, then save.
+          </p>
           <a href={`/c/${tenantSlug}`} className="inline-block mt-4 text-sm font-medium text-amber-700 hover:underline">Back to community</a>
         </div>
       </div>

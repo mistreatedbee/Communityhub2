@@ -11,6 +11,7 @@ type Resource = {
   title: string;
   description: string;
   url: string;
+  thumbnailUrl?: string;
   type: string;
   moduleId?: string;
   programId?: string;
@@ -24,6 +25,7 @@ export function TenantAdminResourceEditPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [type, setType] = useState('link');
   const [saving, setSaving] = useState(false);
 
@@ -35,6 +37,7 @@ export function TenantAdminResourceEditPage() {
       setTitle(data.title);
       setDescription(data.description || '');
       setUrl(data.url || '');
+      setThumbnailUrl(data.thumbnailUrl || '');
       setType(data.type || 'link');
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to load resource', 'error');
@@ -53,6 +56,7 @@ export function TenantAdminResourceEditPage() {
         title,
         description,
         url,
+        thumbnailUrl: thumbnailUrl || '',
         type
       });
       addToast('Resource updated successfully.', 'success');
@@ -87,7 +91,8 @@ export function TenantAdminResourceEditPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <Input label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-        <Input label="URL" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+        <Input label="Thumbnail image URL (optional)" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." />
+        <Input label="Link or file URL" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
         <label className="block text-sm font-medium text-gray-700">Type</label>
         <select className="w-full rounded-lg border border-gray-300 p-2" value={type} onChange={(e) => setType(e.target.value)}>
           <option value="link">Link</option>

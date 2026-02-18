@@ -131,7 +131,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
       icon: Settings
     },
     {
-      label: 'Settings',
+      label: 'Community Profile & Settings',
       href: `${tenantBase}/admin/settings`,
       icon: Settings
     },
@@ -271,7 +271,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
           `}
             onClick={async () => {
               await signOut();
-              navigate('/login');
+              navigate('/');
             }}>
 
             <LogOut className="w-5 h-5" />

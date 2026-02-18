@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowRight, Loader2, Lock, Mail, KeyRound, MessageCircle } from 'lucide-react';
+import { AlertCircle, ArrowRight, ArrowLeft, Loader2, Lock, Mail, KeyRound, MessageCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -35,6 +35,12 @@ export function LoginPage() {
 
     if (redirectFrom) {
       navigate(redirectFrom, { replace: true });
+      return;
+    }
+
+    const activeMemberships = memberships.filter((m) => m.status === 'ACTIVE' || m.status === 'PENDING');
+    if (activeMemberships.length > 1) {
+      navigate('/my-communities', { replace: true });
       return;
     }
 
@@ -78,6 +84,11 @@ export function LoginPage() {
     }
   };
 
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
       {isLoading && (
@@ -91,7 +102,18 @@ export function LoginPage() {
         </div>
       )}
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
+      <div className="absolute top-4 left-4 sm:left-6">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+      </div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8 px-4">
         <Link to="/" className="inline-flex items-center gap-3 mb-6 justify-center">
           {organization.logo ? (
             <img
@@ -106,18 +128,15 @@ export function LoginPage() {
           )}
           <span className="font-bold text-2xl text-gray-900 tracking-tight">{organization.name}</span>
         </Link>
-        <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Admin Login</h2>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Sign in</h1>
         <p className="text-sm text-gray-600 mt-2">
-          Sign in to manage your organization&apos;s Community Hub.
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          This login is for tenant administrators and super admins. Members should join communities from the community page.
+          Sign in to access your community or admin hub.
         </p>
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-3xl grid md:grid-cols-2 gap-6">
-        <Card className="shadow-xl border-0 ring-1 ring-gray-200 bg-white/90 backdrop-blur">
-          <CardContent className="p-8 space-y-6">
+      <div className="sm:mx-auto sm:w-full sm:max-w-3xl grid md:grid-cols-2 gap-6 px-4">
+        <Card className="shadow-lg border border-gray-200 rounded-xl bg-white">
+          <CardContent className="p-6 sm:p-8 space-y-5">
             <form className="space-y-6" onSubmit={handleSubmit} aria-disabled={isLoading}>
               {error && (
                 <div
@@ -210,10 +229,10 @@ export function LoginPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-xl border-0 ring-1 ring-gray-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-          <CardContent className="p-8 space-y-5">
-            <h3 className="text-xl font-semibold text-gray-900">Need to set up a new admin hub?</h3>
-            <p className="text-sm text-gray-200">
+        <Card className="shadow-lg border border-gray-200 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 text-white">
+          <CardContent className="p-6 sm:p-8 space-y-5">
+            <h3 className="text-lg font-semibold text-white">Need to set up a new admin hub?</h3>
+            <p className="text-sm text-slate-200">
               Onboarding is license-first for new community tenants. Create a branded digital home for your members in
               minutes.
             </p>
@@ -230,7 +249,7 @@ export function LoginPage() {
               </Button>
             </a>
 
-            <p className="text-xs text-gray-300 pt-2">
+            <p className="text-xs text-slate-300 pt-2">
               Existing clients: Enter your license to create your admin account and community workspace.
             </p>
           </CardContent>

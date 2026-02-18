@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Mail, Lock, User } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Mail, Lock, User } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -78,16 +78,27 @@ export function SignupPage() {
     return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Verifying license...</div>;
   }
 
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/enter-license');
+  };
+
   if (licenseState === 'invalid') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center">
-          <div className="bg-white border border-gray-200 rounded-xl p-8">
-            <h2 className="text-2xl font-bold text-gray-900">Enter license first</h2>
+        <div className="absolute top-4 left-4 sm:left-6">
+          <button type="button" onClick={() => navigate('/')} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        </div>
+        <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center px-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-lg">
+            <h2 className="text-xl font-bold text-gray-900">Enter license first</h2>
             <p className="text-sm text-gray-600 mt-2">
               Admin signup is available only after license verification.
             </p>
-            <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/enter-license">
                 <Button>Enter License Key</Button>
               </Link>
@@ -103,21 +114,27 @@ export function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
+      <div className="absolute top-4 left-4 sm:left-6">
+        <button type="button" onClick={goBack} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900">
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+      </div>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8 px-4">
         <Link to="/" className="inline-flex items-center gap-2 mb-6">
           <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-xl">
             {organization.name.charAt(0)}
           </div>
           <span className="font-bold text-2xl text-gray-900">{organization.name}</span>
         </Link>
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Create your admin account</h2>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Create your admin account</h1>
         <p className="mt-2 text-sm text-gray-600">License verified. Continue to create your account.</p>
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="shadow-xl border-0 ring-1 ring-gray-200">
-          <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-4">
+        <Card className="shadow-lg border border-gray-200 rounded-xl bg-white">
+          <CardContent className="p-6 sm:p-8 space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <Input
                 label="Full name"
                 value={fullName}
@@ -143,7 +160,7 @@ export function SignupPage() {
               </Button>
             </form>
             <p className="mt-4 text-center text-sm text-gray-500">
-              Already have an account? <Link to="/login" className="font-medium text-[var(--color-primary)]">Sign in</Link>
+              Already have an account? <Link to="/login" className="font-medium text-[var(--color-primary)] hover:underline">Sign in</Link>
             </p>
           </CardContent>
         </Card>

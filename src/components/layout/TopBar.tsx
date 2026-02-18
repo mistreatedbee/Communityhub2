@@ -123,7 +123,7 @@ export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' 
                 danger: true,
                 onClick: async () => {
                   await signOut();
-                  navigate('/login');
+                  navigate('/');
                 }
               }
             ]}

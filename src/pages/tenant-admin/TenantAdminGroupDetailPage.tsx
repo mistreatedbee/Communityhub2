@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import {
+  tenantFeaturesDelete,
   tenantFeaturesGet,
   tenantFeaturesPost,
   tenantFeaturesPut
@@ -13,6 +14,12 @@ import {
 type Group = { _id: string; name: string; description: string; isPrivate?: boolean };
 type Program = { _id: string; title: string; description?: string };
 type GroupDetailPayload = { group: Group; assignments: { programId: string }[]; programs: Program[] };
+type GroupMember = {
+  _id: string;
+  userId: { _id: string; email: string; fullName: string } | null;
+  role: string;
+  createdAt: string;
+};
 
 export function TenantAdminGroupDetailPage() {
   const { tenant } = useTenant();
@@ -20,22 +27,27 @@ export function TenantAdminGroupDetailPage() {
   const { addToast } = useToast();
   const [data, setData] = useState<GroupDetailPayload | null>(null);
   const [allPrograms, setAllPrograms] = useState<Program[]>([]);
+  const [members, setMembers] = useState<GroupMember[]>([]);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editIsPrivate, setEditIsPrivate] = useState(false);
   const [assignProgramId, setAssignProgramId] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!tenant?.id || !groupId) return;
     try {
-      const [detail, programsPayload] = await Promise.all([
+      const [detail, programsPayload, membersList] = await Promise.all([
         tenantFeaturesGet<GroupDetailPayload>(tenant.id, `/groups/${groupId}`),
-        tenantFeaturesGet<{ programs: Program[] }>(tenant.id, '/programs')
+        tenantFeaturesGet<{ programs: Program[] }>(tenant.id, '/programs'),
+        tenantFeaturesGet<GroupMember[]>(tenant.id, `/groups/${groupId}/members`).catch(() => [])
       ]);
       setData(detail);
       setAllPrograms(programsPayload?.programs ?? []);
+      setMembers(Array.isArray(membersList) ? membersList : []);
       setEditName(detail.group.name);
       setEditDescription(detail.group.description || '');
+      setEditIsPrivate(!!detail.group.isPrivate);
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to load group', 'error');
     }
@@ -51,7 +63,8 @@ export function TenantAdminGroupDetailPage() {
     try {
       await tenantFeaturesPut(tenant.id, `/groups/${groupId}`, {
         name: editName,
-        description: editDescription
+        description: editDescription,
+        isPrivate: editIsPrivate
       });
       addToast('Group updated successfully.', 'success');
       await load();
@@ -59,6 +72,17 @@ export function TenantAdminGroupDetailPage() {
       addToast(e instanceof Error ? e.message : 'Failed to update group', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const removeMember = async (userId: string) => {
+    if (!tenant?.id || !groupId) return;
+    try {
+      await tenantFeaturesDelete(tenant.id, `/groups/${groupId}/members/${userId}`);
+      addToast('Member removed from group', 'success');
+      await load();
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Failed to remove member', 'error');
     }
   };
 
@@ -106,9 +130,35 @@ export function TenantAdminGroupDetailPage() {
           value={editDescription}
           onChange={(e) => setEditDescription(e.target.value)}
         />
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={editIsPrivate} onChange={(e) => setEditIsPrivate(e.target.checked)} />
+          Invite-only (private within community)
+        </label>
         <Button onClick={() => void saveGroup()} isLoading={saving}>
           Save changes
         </Button>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <h2 className="font-semibold text-gray-900">Group members</h2>
+        {members.length > 0 ? (
+          <ul className="space-y-2">
+            {members.map((m) => (
+              <li key={m._id} className="flex items-center justify-between gap-2 py-2 border-b border-gray-100 last:border-0">
+                <span className="text-sm text-gray-900">
+                  {m.userId?.fullName || m.userId?.email || 'Unknown'} {m.role === 'LEADER' ? '(Leader)' : ''}
+                </span>
+                {m.userId && (
+                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => void removeMember(m.userId!._id)}>
+                    Remove
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500">No members yet. Members join from the member app.</p>
+        )}
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">

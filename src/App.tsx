@@ -47,6 +47,7 @@ import { TenantAdminResourceEditPage } from './pages/tenant-admin/TenantAdminRes
 import { TenantAdminGroupsPage } from './pages/tenant-admin/TenantAdminGroupsPage';
 import { TenantAdminModuleDetailPage } from './pages/tenant-admin/TenantAdminModuleDetailPage';
 import { TenantAdminEventsPage } from './pages/tenant-admin/TenantAdminEventsPage';
+import { TenantAdminEventEditPage } from './pages/tenant-admin/TenantAdminEventEditPage';
 import { TenantAdminProgramsPage } from './pages/tenant-admin/TenantAdminProgramsPage';
 import { TenantAdminProgramDetailPage } from './pages/tenant-admin/TenantAdminProgramDetailPage';
 import { TenantAdminGroupDetailPage } from './pages/tenant-admin/TenantAdminGroupDetailPage';
@@ -64,6 +65,7 @@ import { SystemAnalyticsPage } from './pages/super-admin/SystemAnalyticsPage';
 import { AuditLogsPage } from './pages/super-admin/AuditLogsPage';
 import { SuperAdminSettingsPage } from './pages/super-admin/SuperAdminSettingsPage';
 import { DebugSessionPage } from './pages/debug/DebugSessionPage';
+import { MyCommunitiesPage } from './pages/my-communities/MyCommunitiesPage';
 
 export function App() {
   return (
@@ -92,6 +94,7 @@ export function App() {
               <Route path="/setup-community" element={<SetupCommunityPage />} />
               <Route path="/register" element={<Navigate to="/enter-license" replace />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/my-communities" element={<RequireAuth><MyCommunitiesPage /></RequireAuth>} />
               <Route path="/debug-session" element={import.meta.env.DEV ? <DebugSessionPage /> : <Navigate to="/" replace />} />
               <Route path="/debug-auth" element={import.meta.env.DEV ? <DebugSessionPage /> : <Navigate to="/" replace />} />
 
@@ -137,6 +140,7 @@ export function App() {
                   <Route path="groups" element={<TenantAdminGroupsPage />} />
                   <Route path="groups/:groupId" element={<TenantAdminGroupDetailPage />} />
                   <Route path="events" element={<TenantAdminEventsPage />} />
+                  <Route path="events/:eventId" element={<TenantAdminEventEditPage />} />
                   <Route path="programs" element={<TenantAdminProgramsPage />} />
                   <Route path="programs/:programId" element={<TenantAdminProgramDetailPage />} />
                   <Route path="programs/:programId/modules/:moduleId" element={<TenantAdminModuleDetailPage />} />

@@ -11,6 +11,7 @@ type Resource = {
   title: string;
   description: string;
   url: string;
+  thumbnailUrl?: string;
   type: string;
 };
 
@@ -21,6 +22,7 @@ export function TenantAdminResourcesPage() {
   const [items, setItems] = useState<Resource[]>([]);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [description, setDescription] = useState('');
 
   const load = async () => {
@@ -43,12 +45,14 @@ export function TenantAdminResourcesPage() {
         title,
         description,
         url,
-        type: 'link'
+        thumbnailUrl: thumbnailUrl || undefined,
+        type: url ? (url.match(/\.(pdf|png|jpg|jpeg|gif|webp)$/i) ? 'file' : 'link') : 'link'
       });
       addToast('Resource created successfully.', 'success');
       setTitle('');
       setDescription('');
       setUrl('');
+      setThumbnailUrl('');
       await load();
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to create resource', 'error');
@@ -71,8 +75,9 @@ export function TenantAdminResourcesPage() {
       <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <Input label="URL" value={url} onChange={(e) => setUrl(e.target.value)} />
-        <Input label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Input label="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Input label="Thumbnail image URL (optional)" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." />
+        <Input label="Link or file URL" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://... or file URL after upload" />
         <Button onClick={() => void create()}>Add resource</Button>
       </div>
       <div className="space-y-3">
@@ -83,11 +88,15 @@ export function TenantAdminResourcesPage() {
           >
             <Link
               to={`/c/${tenantSlug}/admin/resources/${item._id}`}
-              className="flex-1 min-w-0 hover:opacity-90"
+              className="flex-1 min-w-0 hover:opacity-90 flex gap-3"
             >
-              <p className="font-semibold text-gray-900">{item.title}</p>
-              <p className="text-sm text-gray-600">{item.description}</p>
-              {item.url ? (
+              {item.thumbnailUrl ? (
+                <img src={item.thumbnailUrl} alt="" className="w-12 h-12 rounded object-cover shrink-0" />
+              ) : null}
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900">{item.title}</p>
+                <p className="text-sm text-gray-600">{item.description}</p>
+                {item.url ? (
                 <a
                   className="text-sm text-[var(--color-primary)]"
                   href={item.url}
@@ -98,6 +107,7 @@ export function TenantAdminResourcesPage() {
                   Open link
                 </a>
               ) : null}
+              </div>
             </Link>
             <Button variant="ghost" className="text-red-600 shrink-0" onClick={() => void remove(item._id)}>
               Delete

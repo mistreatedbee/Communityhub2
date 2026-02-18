@@ -20,8 +20,17 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     if (import.meta.env.DEV) {
-      console.debug('[RequireAuth] redirecting to /login because loading=false and user=null');
+      console.debug('[RequireAuth] redirecting because loading=false and user=null');
     }
+    
+    // Check if this is a member route (/c/:tenantSlug/app)
+    const memberRouteMatch = location.pathname.match(/^\/c\/([^/]+)\/app/);
+    if (memberRouteMatch) {
+      const tenantSlug = memberRouteMatch[1];
+      return <Navigate to={`/c/${tenantSlug}/join`} replace state={{ from: location.pathname }} />;
+    }
+    
+    // For admin routes, super-admin, etc., redirect to /login
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 

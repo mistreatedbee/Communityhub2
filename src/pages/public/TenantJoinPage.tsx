@@ -6,7 +6,8 @@ import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../lib/apiClient';
-import { getRequiredFieldError } from '../../utils/validation';
+import { registerWithPassword, loginWithPassword } from '../../lib/apiAuth';
+import { getRequiredFieldError, isValidEmail, getPasswordValidationError } from '../../utils/validation';
 
 type JoinField = {
   id: string;
@@ -45,10 +46,15 @@ export function TenantJoinPage() {
   const [customFields, setCustomFields] = useState<Record<string, string | boolean>>({});
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [fullNameError, setFullNameError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [registrationStep, setRegistrationStep] = useState<'idle' | 'registering' | 'joining'>('idle');
 
   useEffect(() => {
     const load = async () => {
@@ -58,6 +64,10 @@ export function TenantJoinPage() {
         const query = inviteToken ? `?invite=${encodeURIComponent(inviteToken)}` : '';
         const data = await apiClient<JoinInfo>(`/api/tenants/${tenantSlug}/join-info${query}`);
         setJoinInfo(data);
+        // Pre-fill email from invitation if available
+        if (data.invitation?.email) {
+          setEmail(data.invitation.email);
+        }
       } catch (e) {
         addToast(e instanceof Error ? e.message : 'Unable to load join page', 'error');
       } finally {
@@ -71,31 +81,99 @@ export function TenantJoinPage() {
     event.preventDefault();
     if (!tenantSlug) return;
 
-    if (!user) {
-      const query = inviteToken ? `?invite=${encodeURIComponent(inviteToken)}` : '';
-      navigate('/login', { state: { from: `/c/${tenantSlug}/join${query}` } });
-      return;
-    }
-
     if (joinInfo?.invitation && !joinInfo.invitation.valid) {
       addToast(`Invitation is ${joinInfo.invitation.status.toLowerCase()}.`, 'error');
       return;
     }
 
-    // Client-side validation: full name and phone required (when not invite-only flow)
+    // Clear previous errors
     setFullNameError(null);
     setPhoneError(null);
+    setEmailError(null);
+    setPasswordError(null);
+
+    // Validate all required fields
     const nameErr = getRequiredFieldError(fullName, 'Full name');
     const phoneErr = getRequiredFieldError(phone, 'Phone');
-    if (nameErr || phoneErr) {
-      if (nameErr) setFullNameError(nameErr);
-      if (phoneErr) setPhoneError(phoneErr);
-      addToast('Please fill in all required fields.', 'error');
+    let hasErrors = false;
+
+    if (nameErr) {
+      setFullNameError(nameErr);
+      hasErrors = true;
+    }
+    if (phoneErr) {
+      setPhoneError(phoneErr);
+      hasErrors = true;
+    }
+
+    // If user is not authenticated, require email and password
+    if (!user) {
+      const emailErr = !email.trim() ? 'Email is required.' : !isValidEmail(email) ? 'Please enter a valid email address.' : null;
+      const pwdErr = getPasswordValidationError(password);
+      
+      if (emailErr) {
+        setEmailError(emailErr);
+        hasErrors = true;
+      }
+      if (pwdErr) {
+        setPasswordError(pwdErr);
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
+      addToast('Please fill in all required fields correctly.', 'error');
       return;
     }
 
     setLoading(true);
+    setRegistrationStep('idle');
+
     try {
+      let currentUser = user;
+
+      // Step 1: Register account if not authenticated
+      if (!currentUser) {
+        setRegistrationStep('registering');
+        try {
+          await registerWithPassword({
+            email: email.trim().toLowerCase(),
+            password,
+            fullName: fullName.trim(),
+            phone: phone.trim()
+          });
+          await refreshProfile();
+          // After refreshProfile, user context will be updated
+          addToast('Account created successfully.', 'success');
+        } catch (regError: any) {
+          const errorMsg = regError instanceof Error ? regError.message : 'Unable to create account';
+          if (errorMsg.includes('already in use') || errorMsg.includes('EMAIL_EXISTS')) {
+            // Email exists - try to sign in instead
+            try {
+              await loginWithPassword(email.trim().toLowerCase(), password);
+              await refreshProfile();
+              addToast('Signed in successfully.', 'success');
+              // Continue to join step below
+            } catch (loginError: any) {
+              const loginMsg = loginError instanceof Error ? loginError.message : 'Unable to sign in';
+              setEmailError('This email is already registered.');
+              setPasswordError('Invalid password. Please check your password or use a different email.');
+              addToast('Email exists but password is incorrect. Please check your password.', 'error');
+              setLoading(false);
+              setRegistrationStep('idle');
+              return;
+            }
+          } else {
+            addToast(errorMsg, 'error');
+            setLoading(false);
+            setRegistrationStep('idle');
+            return;
+          }
+        }
+      }
+
+      // Step 2: Join tenant
+      setRegistrationStep('joining');
       const result = await apiClient<{ pendingApproval: boolean }>(`/api/tenants/${tenantSlug}/join`, {
         method: 'POST',
         body: JSON.stringify({
@@ -115,9 +193,11 @@ export function TenantJoinPage() {
         navigate(`/c/${tenantSlug}/app`, { replace: true });
       }
     } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Unable to join', 'error');
+      const errorMsg = e instanceof Error ? e.message : 'Unable to join';
+      addToast(errorMsg, 'error');
     } finally {
       setLoading(false);
+      setRegistrationStep('idle');
     }
   };
 
@@ -138,7 +218,7 @@ export function TenantJoinPage() {
   }
 
   const allowJoin = joinInfo.allowJoin !== false;
-  const stepHint = !user ? 'Step 1: Sign in' : 'Step 2: Complete your profile';
+  const stepHint = !user ? 'Step 1: Create account' : 'Step 2: Complete your profile';
 
   if (!allowJoin) {
     return (
@@ -175,6 +255,42 @@ export function TenantJoinPage() {
             </span>
           </div>
         ) : null}
+
+        {!user && (
+          <>
+            <div>
+              <Input
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
+                required
+                disabled={!!joinInfo?.invitation?.email}
+                aria-invalid={!!emailError}
+                aria-describedby={emailError ? 'email-error' : undefined}
+              />
+              {emailError && <p id="email-error" className="text-sm text-red-600 mt-1">{emailError}</p>}
+              {joinInfo?.invitation?.email && (
+                <p className="text-xs text-gray-500 mt-1">Email is set from your invitation.</p>
+              )}
+            </div>
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }}
+                required
+                aria-invalid={!!passwordError}
+                aria-describedby={passwordError ? 'password-error' : undefined}
+              />
+              {passwordError && <p id="password-error" className="text-sm text-red-600 mt-1">{passwordError}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                Password must be at least 8 characters with uppercase, lowercase, and a number.
+              </p>
+            </div>
+          </>
+        )}
 
         <div>
           <Input
@@ -220,7 +336,10 @@ export function TenantJoinPage() {
         ))}
 
         <Button type="submit" className="w-full" isLoading={loading}>
-          {user ? 'Submit registration' : 'Continue to login'}
+          {loading && registrationStep === 'registering' && 'Creating account...'}
+          {loading && registrationStep === 'joining' && 'Joining community...'}
+          {!loading && user && 'Submit registration'}
+          {!loading && !user && 'Create account & join'}
         </Button>
       </form>
     </div>

@@ -106,9 +106,12 @@ export function LoginPage() {
           )}
           <span className="font-bold text-2xl text-gray-900 tracking-tight">{organization.name}</span>
         </Link>
-        <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Welcome back</h2>
+        <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Admin Login</h2>
         <p className="text-sm text-gray-600 mt-2">
           Sign in to manage your organization&apos;s Community Hub.
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          This login is for tenant administrators and super admins. Members should join communities from the community page.
         </p>
       </div>
 

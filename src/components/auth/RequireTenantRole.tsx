@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
 import type { UserRole } from '../../types';
@@ -14,6 +14,7 @@ export function RequireTenantRole({
   allowPending?: boolean;
 }) {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
+  const location = useLocation();
   const { loading, platformRole } = useAuth();
   const { membership, loading: tenantLoading } = useTenant();
 
@@ -39,8 +40,19 @@ export function RequireTenantRole({
 
   const statusAllowed = isActive || (allowPending && isPending);
   if (!tenantRole || !statusAllowed || !roleInList) {
-    const loginTo = tenantSlug ? { pathname: '/login', state: { from: `/c/${tenantSlug}/join` } } : '/login';
-    return <Navigate to={loginTo} replace />;
+    // Check if this is a member route (app) or admin route
+    const isMemberRoute = location.pathname.includes('/app');
+    
+    if (tenantSlug && isMemberRoute) {
+      // Member routes: redirect to join page
+      return <Navigate to={`/c/${tenantSlug}/join`} replace />;
+    } else if (tenantSlug) {
+      // Admin routes: redirect to login
+      return <Navigate to={{ pathname: '/login', state: { from: `/c/${tenantSlug}/admin` } }} replace />;
+    } else {
+      // Fallback: redirect to login
+      return <Navigate to="/login" replace />;
+    }
   }
 
   return <>{children}</>;

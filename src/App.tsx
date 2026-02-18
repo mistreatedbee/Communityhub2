@@ -43,9 +43,13 @@ import { TenantAdminMembersPage } from './pages/tenant-admin/TenantAdminMembersP
 import { TenantAdminInvitationsPage } from './pages/tenant-admin/TenantAdminInvitationsPage';
 import { TenantAdminContentPage } from './pages/tenant-admin/TenantAdminContentPage';
 import { TenantAdminResourcesPage } from './pages/tenant-admin/TenantAdminResourcesPage';
+import { TenantAdminResourceEditPage } from './pages/tenant-admin/TenantAdminResourceEditPage';
 import { TenantAdminGroupsPage } from './pages/tenant-admin/TenantAdminGroupsPage';
+import { TenantAdminModuleDetailPage } from './pages/tenant-admin/TenantAdminModuleDetailPage';
 import { TenantAdminEventsPage } from './pages/tenant-admin/TenantAdminEventsPage';
 import { TenantAdminProgramsPage } from './pages/tenant-admin/TenantAdminProgramsPage';
+import { TenantAdminProgramDetailPage } from './pages/tenant-admin/TenantAdminProgramDetailPage';
+import { TenantAdminGroupDetailPage } from './pages/tenant-admin/TenantAdminGroupDetailPage';
 import { TenantAdminRegistrationFormPage } from './pages/tenant-admin/TenantAdminRegistrationFormPage';
 import { TenantAdminAnalyticsPage } from './pages/tenant-admin/TenantAdminAnalyticsPage';
 import { TenantAdminBillingPage } from './pages/tenant-admin/TenantAdminBillingPage';
@@ -129,9 +133,13 @@ export function App() {
                   <Route path="invitations" element={<TenantAdminInvitationsPage />} />
                   <Route path="content" element={<TenantAdminContentPage />} />
                   <Route path="resources" element={<TenantAdminResourcesPage />} />
+                  <Route path="resources/:resourceId" element={<TenantAdminResourceEditPage />} />
                   <Route path="groups" element={<TenantAdminGroupsPage />} />
+                  <Route path="groups/:groupId" element={<TenantAdminGroupDetailPage />} />
                   <Route path="events" element={<TenantAdminEventsPage />} />
                   <Route path="programs" element={<TenantAdminProgramsPage />} />
+                  <Route path="programs/:programId" element={<TenantAdminProgramDetailPage />} />
+                  <Route path="programs/:programId/modules/:moduleId" element={<TenantAdminModuleDetailPage />} />
                   <Route path="registration-form" element={<TenantAdminRegistrationFormPage />} />
                   <Route path="settings" element={<TenantAdminSettingsPage />} />
                   <Route path="analytics" element={<TenantAdminAnalyticsPage />} />

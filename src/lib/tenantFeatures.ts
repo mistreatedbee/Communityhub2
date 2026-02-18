@@ -22,9 +22,11 @@ export function tenantFeaturesPut<T>(tenantId: string, path: string, body: unkno
   });
 }
 
-export function tenantFeaturesDelete(tenantId: string, path: string) {
-  return apiClient<void>(`${base(tenantId)}${path}`, {
-    method: 'DELETE'
-  });
+export function tenantFeaturesDelete(tenantId: string, path: string, options?: { body?: unknown }) {
+  const init: RequestInit = { method: 'DELETE' };
+  if (options?.body !== undefined) {
+    init.body = JSON.stringify(options.body);
+  }
+  return apiClient<void>(`${base(tenantId)}${path}`, init);
 }
 

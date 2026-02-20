@@ -9,6 +9,13 @@ import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { loginWithPassword } from '../../lib/apiAuth';
 import { apiClient } from '../../lib/apiClient';
+import {
+  getDefaultTenantRoute,
+  getEligibleMemberships,
+  normalizeMemberships,
+  pickHighestRoleMembership
+} from '../../utils/membershipRouting';
+import { SafeImage } from '../../components/ui/SafeImage';
 
 const whatsappHref =
   'https://wa.me/27731531188?text=Hi%20Ashley%2C%20I%E2%80%99d%20like%20to%20purchase%20a%20Community%20Hub%20license%E2%80%A6';
@@ -28,42 +35,67 @@ export function LoginPage() {
 
   useEffect(() => {
     if (authLoading || !user) return;
-    if (platformRole === 'SUPER_ADMIN') {
-      navigate('/super-admin', { replace: true });
-      return;
-    }
+    let cancelled = false;
 
-    if (redirectFrom) {
-      navigate(redirectFrom, { replace: true });
-      return;
-    }
+    const run = async () => {
+      if (import.meta.env.DEV) {
+        console.debug('[AuthRedirect] decision:start', {
+          sessionLoaded: !authLoading,
+          membershipsLoaded: true,
+          userId: user.id,
+          platformRole,
+          redirectFrom,
+          memberships
+        });
+      }
 
-    const activeMemberships = memberships.filter((m) => m.status === 'ACTIVE' || m.status === 'PENDING');
-    if (activeMemberships.length > 1) {
-      navigate('/my-communities', { replace: true });
-      return;
-    }
+      if (platformRole === 'SUPER_ADMIN') {
+        if (import.meta.env.DEV) {
+          console.debug('[AuthRedirect] decision:super-admin', { target: '/super-admin' });
+        }
+        navigate('/super-admin', { replace: true });
+        return;
+      }
 
-    const adminMembership = memberships.find(
-      (m) => m.status === 'ACTIVE' && (m.role === 'OWNER' || m.role === 'ADMIN')
-    );
+      const eligibleMemberships = getEligibleMemberships(normalizeMemberships(memberships));
+      const uniqueTenantIds = new Set(eligibleMemberships.map((m) => m.tenantId));
 
-    if (adminMembership?.tenantId) {
-      apiClient<{ slug: string }>(`/api/tenants/id/${adminMembership.tenantId}`)
-        .then((tenant) => navigate(`/c/${tenant.slug}/admin`, { replace: true }))
-        .catch(() => setNoAdminAccess(true));
-      return;
-    }
+      if (uniqueTenantIds.size > 1) {
+        if (import.meta.env.DEV) {
+          console.debug('[AuthRedirect] decision:multi-tenant', { target: '/my-communities' });
+        }
+        navigate('/my-communities', { replace: true });
+        return;
+      }
 
-    const memberMembership = memberships.find((m) => m.status === 'ACTIVE' || m.status === 'PENDING');
-    if (memberMembership?.tenantId) {
-      apiClient<{ slug: string }>(`/api/tenants/id/${memberMembership.tenantId}`)
-        .then((tenant) => navigate(`/c/${tenant.slug}/app`, { replace: true }))
-        .catch(() => setNoAdminAccess(true));
-      return;
-    }
+      const primary = pickHighestRoleMembership(eligibleMemberships);
+      if (!primary?.tenantId) {
+        setNoAdminAccess(true);
+        return;
+      }
 
-    setNoAdminAccess(true);
+      try {
+        const tenant = await apiClient<{ slug: string }>(`/api/tenants/id/${primary.tenantId}`);
+        if (cancelled) return;
+        const target = getDefaultTenantRoute(tenant.slug, primary);
+        if (import.meta.env.DEV) {
+          console.debug('[AuthRedirect] decision:tenant', {
+            roleChosen: primary.role,
+            membershipStatus: primary.status,
+            target
+          });
+        }
+        navigate(target, { replace: true });
+      } catch {
+        if (cancelled) return;
+        setNoAdminAccess(true);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [authLoading, user, platformRole, memberships, navigate, redirectFrom]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,9 +148,10 @@ export function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8 px-4">
         <Link to="/" className="inline-flex items-center gap-3 mb-6 justify-center">
           {organization.logo ? (
-            <img
+            <SafeImage
               src={organization.logo}
               alt={organization.name}
+              fallbackSrc="/logo.png"
               className="h-10 w-auto drop-shadow-lg rounded-xl bg-white/80 p-1"
             />
           ) : (

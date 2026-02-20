@@ -176,7 +176,7 @@ export function TenantJoinPage() {
 
       // Step 2: Join tenant
       setRegistrationStep('joining');
-      const result = await apiClient<{ pendingApproval: boolean }>(`/api/tenants/${tenantSlug}/join`, {
+      const result = await apiClient<{ pendingApproval: boolean; nextRoute?: string }>(`/api/tenants/${tenantSlug}/join`, {
         method: 'POST',
         body: JSON.stringify({
           inviteToken: inviteToken || undefined,
@@ -189,10 +189,10 @@ export function TenantJoinPage() {
 
       if (result.pendingApproval) {
         addToast('Registration submitted. Waiting for admin approval.', 'success');
-        navigate(`/c/${tenantSlug}/pending`, { replace: true });
+        navigate(result.nextRoute || `/c/${tenantSlug}/pending`, { replace: true });
       } else {
         addToast('You joined the community.', 'success');
-        navigate(`/c/${tenantSlug}/app`, { replace: true });
+        navigate(result.nextRoute || `/c/${tenantSlug}/app`, { replace: true });
       }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unable to join';

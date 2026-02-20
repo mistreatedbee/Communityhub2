@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { getImpersonation } from '../utils/impersonation';
 import { apiClient } from '../lib/apiClient';
+import { DEFAULT_BRAND_LOGO, normalizeImageUrl } from '../utils/image';
 
 type Tenant = {
   id: string;
@@ -110,7 +111,7 @@ export function TenantProvider({ tenantSlug, children }: { tenantSlug: string; c
         name: mappedTenant.name,
         description: mappedTenant.description ?? undefined,
         contactEmail: mappedTenant.contact_email ?? undefined,
-        logo: mappedTenant.logo_url ?? undefined,
+        logo: normalizeImageUrl(mappedTenant.logo_url) || DEFAULT_BRAND_LOGO,
         primaryColor: mappedTenant.primary_color ?? undefined,
         secondaryColor: mappedTenant.secondary_color ?? undefined
       });

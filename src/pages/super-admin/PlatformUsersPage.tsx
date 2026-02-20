@@ -5,6 +5,9 @@ import { Input } from '../../components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import { apiClient } from '../../lib/apiClient';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { useToast } from '../../components/ui/Toast';
 
 type PlatformUser = {
   id: string;
@@ -12,12 +15,18 @@ type PlatformUser = {
   fullName: string;
   phone: string;
   globalRole: 'SUPER_ADMIN' | 'USER';
+  status: 'ACTIVE' | 'SUSPENDED' | 'BANNED';
   createdAt: string;
 };
 
 export function PlatformUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [editing, setEditing] = useState<PlatformUser | null>(null);
+  const [editRole, setEditRole] = useState<PlatformUser['globalRole']>('USER');
+  const [editStatus, setEditStatus] = useState<PlatformUser['status']>('ACTIVE');
+  const [saving, setSaving] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const load = async () => {
@@ -31,6 +40,33 @@ export function PlatformUsersPage() {
     const q = searchTerm.toLowerCase();
     return users.filter((u) => u.email.toLowerCase().includes(q) || (u.fullName || '').toLowerCase().includes(q));
   }, [users, searchTerm]);
+
+  const openEdit = (user: PlatformUser) => {
+    setEditing(user);
+    setEditRole(user.globalRole);
+    setEditStatus(user.status);
+  };
+
+  const saveUser = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      const updated = await apiClient<PlatformUser>(`/api/admin/users/${editing.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          globalRole: editRole,
+          status: editStatus
+        })
+      });
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      addToast('User updated successfully', 'success');
+      setEditing(null);
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Failed to update user', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -54,7 +90,9 @@ export function PlatformUsersPage() {
               <TableHeader>Name</TableHeader>
               <TableHeader>Email</TableHeader>
               <TableHeader>Role</TableHeader>
+              <TableHeader>Status</TableHeader>
               <TableHeader>Created</TableHeader>
+              <TableHeader>Action</TableHeader>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -65,12 +103,60 @@ export function PlatformUsersPage() {
                 <TableCell>
                   <Badge variant={user.globalRole === 'SUPER_ADMIN' ? 'info' : 'default'}>{user.globalRole}</Badge>
                 </TableCell>
+                <TableCell>
+                  <Badge variant={user.status === 'ACTIVE' ? 'success' : user.status === 'SUSPENDED' ? 'warning' : 'danger'}>
+                    {user.status}
+                  </Badge>
+                </TableCell>
                 <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <Button size="sm" variant="outline" onClick={() => openEdit(user)}>
+                    Edit role/status
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Card>
+
+      <Modal
+        isOpen={!!editing}
+        onClose={() => setEditing(null)}
+        title="Edit user role and status"
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button onClick={() => void saveUser()} isLoading={saving}>Save</Button>
+          </>
+        }
+      >
+        {editing && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">{editing.fullName || editing.email}</p>
+            <label className="block text-sm font-medium text-gray-700">Global role</label>
+            <select
+              className="w-full rounded-lg border border-gray-300 p-2 text-sm"
+              value={editRole}
+              onChange={(e) => setEditRole(e.target.value as PlatformUser['globalRole'])}
+            >
+              <option value="USER">USER</option>
+              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+            </select>
+            <label className="block text-sm font-medium text-gray-700">Status</label>
+            <select
+              className="w-full rounded-lg border border-gray-300 p-2 text-sm"
+              value={editStatus}
+              onChange={(e) => setEditStatus(e.target.value as PlatformUser['status'])}
+            >
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
+              <option value="BANNED">BANNED</option>
+            </select>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

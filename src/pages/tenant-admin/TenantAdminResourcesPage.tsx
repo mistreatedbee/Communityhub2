@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesDelete, tenantFeaturesGet, tenantFeaturesPost } from '../../lib/tenantFeatures';
+import { SafeImage } from '../../components/ui/SafeImage';
 
 type Resource = {
   _id: string;
@@ -91,7 +92,7 @@ export function TenantAdminResourcesPage() {
               className="flex-1 min-w-0 hover:opacity-90 flex gap-3"
             >
               {item.thumbnailUrl ? (
-                <img src={item.thumbnailUrl} alt="" className="w-12 h-12 rounded object-cover shrink-0" />
+                <SafeImage src={item.thumbnailUrl} alt={item.title} fallbackSrc="/image-fallback.svg" className="w-12 h-12 rounded object-cover shrink-0" />
               ) : null}
               <div className="min-w-0">
                 <p className="font-semibold text-gray-900">{item.title}</p>

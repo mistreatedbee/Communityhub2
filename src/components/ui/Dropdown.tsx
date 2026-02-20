@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 interface DropdownItem {
   label: string;
   onClick?: () => void;
@@ -40,23 +41,43 @@ export function Dropdown({ trigger, items, align = 'left' }: DropdownProps) {
           `}>
 
           <div className="py-1" role="menu">
-            {items.map((item, index) =>
-          <button
-            key={index}
-            onClick={() => {
-              item.onClick?.();
-              setIsOpen(false);
-            }}
-            className={`
-                  w-full text-left px-4 py-2 text-sm flex items-center gap-2
-                  ${item.danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'}
-                `}
-            role="menuitem">
-
-                {item.icon && <span className="w-4 h-4">{item.icon}</span>}
-                {item.label}
-              </button>
-          )}
+            {items.map((item, index) => {
+              const classes = `
+                w-full text-left px-4 py-2 text-sm flex items-center gap-2
+                ${item.danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'}
+              `;
+              if (item.href) {
+                return (
+                  <Link
+                    key={index}
+                    to={item.href}
+                    onClick={() => {
+                      item.onClick?.();
+                      setIsOpen(false);
+                    }}
+                    className={classes}
+                    role="menuitem"
+                  >
+                    {item.icon && <span className="w-4 h-4">{item.icon}</span>}
+                    {item.label}
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    item.onClick?.();
+                    setIsOpen(false);
+                  }}
+                  className={classes}
+                  role="menuitem"
+                >
+                  {item.icon && <span className="w-4 h-4">{item.icon}</span>}
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       }

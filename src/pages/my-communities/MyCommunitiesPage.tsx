@@ -4,6 +4,7 @@ import { Building2, LayoutDashboard, Shield, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../lib/apiClient';
 import { useTheme } from '../../contexts/ThemeContext';
+import { SafeImage } from '../../components/ui/SafeImage';
 
 type TenantInfo = {
   id: string;
@@ -65,7 +66,7 @@ export function MyCommunitiesPage() {
           <div className="flex items-center justify-between">
             <Link to="/" className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900">
               {organization.logo ? (
-                <img src={organization.logo} alt="" className="h-8 w-auto" />
+                <SafeImage src={organization.logo} alt={organization.name} fallbackSrc="/logo.png" className="h-8 w-auto" />
               ) : (
                 <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-sm">
                   {organization.name.charAt(0)}

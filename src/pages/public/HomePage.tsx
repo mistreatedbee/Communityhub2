@@ -5,13 +5,8 @@ import { Button } from '../../components/ui/Button';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasLicenseSession } from '../../utils/licenseToken';
-
-const rolePriority: Record<string, number> = {
-  OWNER: 4,
-  ADMIN: 3,
-  MODERATOR: 2,
-  MEMBER: 1
-};
+import { getDefaultTenantRoute, getEligibleMemberships, normalizeMemberships, pickHighestRoleMembership } from '../../utils/membershipRouting';
+import { apiClient } from '../../lib/apiClient';
 
 export function HomePage() {
   const { organization } = useTheme();
@@ -26,10 +21,20 @@ export function HomePage() {
       return;
     }
 
-    const activeMemberships = memberships.filter((m) => m.status === 'ACTIVE');
-    if (activeMemberships.length > 0) {
-      const primary = activeMemberships.sort((a, b) => (rolePriority[b.role] ?? 0) - (rolePriority[a.role] ?? 0))[0];
-      navigate('/communities', { replace: true, state: { tenantId: primary.tenantId } });
+    const eligibleMemberships = getEligibleMemberships(normalizeMemberships(memberships));
+    const uniqueTenantIds = new Set(eligibleMemberships.map((m) => m.tenantId));
+    if (uniqueTenantIds.size > 1) {
+      navigate('/my-communities', { replace: true });
+      return;
+    }
+
+    const primary = pickHighestRoleMembership(eligibleMemberships);
+    if (primary?.tenantId) {
+      void apiClient<{ slug: string }>(`/api/tenants/id/${primary.tenantId}`)
+        .then((tenant) => {
+          navigate(getDefaultTenantRoute(tenant.slug, primary), { replace: true });
+        })
+        .catch(() => navigate('/communities', { replace: true }));
       return;
     }
 

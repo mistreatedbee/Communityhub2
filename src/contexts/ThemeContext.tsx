@@ -1,5 +1,6 @@
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { Organization } from '../types';
+import { DEFAULT_BRAND_LOGO, normalizeImageUrl } from '../utils/image';
 interface ThemeContextType {
   organization: Organization;
   updateTheme: (org: Partial<Organization>) => void;
@@ -11,7 +12,7 @@ const defaultOrg: Organization = {
   secondaryColor: '#10B981',
   description: 'A place for communities to grow and thrive together.',
   contactEmail: 'contact@communityhub.com',
-  logo: '/logo.svg'
+  logo: DEFAULT_BRAND_LOGO
 };
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: {children: React.ReactNode;}) {
@@ -32,6 +33,9 @@ export function ThemeProvider({ children }: {children: React.ReactNode;}) {
     const sanitized = Object.fromEntries(
       Object.entries(updates).filter(([, value]) => value !== undefined)
     ) as Partial<Organization>;
+    if (sanitized.logo !== undefined) {
+      sanitized.logo = normalizeImageUrl(sanitized.logo) || DEFAULT_BRAND_LOGO;
+    }
     setOrganization((prev) => ({
       ...prev,
       ...sanitized

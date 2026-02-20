@@ -5,6 +5,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { SafeImage } from '../../components/ui/SafeImage';
 
 type TenantRow = {
   id: string;
@@ -83,7 +84,9 @@ export function TenantPublicPage() {
       <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 font-semibold overflow-hidden">
-            {tenant.logoUrl ? <img src={tenant.logoUrl} alt={tenant.name} className="w-full h-full object-cover" /> : tenant.name.charAt(0)}
+            {tenant.logoUrl ? (
+              <SafeImage src={tenant.logoUrl} alt={tenant.name} fallbackSrc="/logo.png" className="w-full h-full object-cover" />
+            ) : tenant.name.charAt(0)}
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{tenant.name}</h1>

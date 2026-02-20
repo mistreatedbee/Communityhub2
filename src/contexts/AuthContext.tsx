@@ -1,6 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { clearImpersonation } from '../utils/impersonation';
 import { fetchSession, logout, type ApiMembership, type ApiSessionUser } from '../lib/apiAuth';
+import { apiClient } from '../lib/apiClient';
+import {
+  getDefaultTenantRoute,
+  getEligibleMemberships,
+  normalizeMemberships as normalizeMembershipRows,
+  normalizeMembershipRole,
+  normalizeMembershipStatus,
+  pickHighestRoleMembership
+} from '../utils/membershipRouting';
 
 type Membership = {
   id: string;
@@ -18,10 +27,12 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   role: Membership['role'] | null;
+  displayRole: 'Super Admin' | 'Tenant Admin' | 'Member' | null;
   organizationId: string | null;
   platformRole: 'USER' | 'SUPER_ADMIN';
   memberships: Membership[];
   profileName: string | null;
+  resolveDashboardTarget: () => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -49,8 +60,8 @@ function normalizeMemberships(items: ApiMembership[] | undefined): Membership[] 
   return (items || []).map((m) => ({
     id: m.id,
     tenantId: m.tenantId,
-    role: m.role,
-    status: m.status
+    role: normalizeMembershipRole(m.role),
+    status: normalizeMembershipStatus(m.status)
   }));
 }
 
@@ -110,10 +121,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       loading,
       role,
+      displayRole:
+        platformRole === 'SUPER_ADMIN'
+          ? 'Super Admin'
+          : memberships.some((m) => m.status === 'ACTIVE' && (m.role === 'OWNER' || m.role === 'ADMIN' || m.role === 'MODERATOR'))
+          ? 'Tenant Admin'
+          : memberships.some((m) => m.status === 'ACTIVE' || m.status === 'PENDING')
+          ? 'Member'
+          : null,
       organizationId,
       platformRole,
       memberships,
       profileName,
+      resolveDashboardTarget: async () => {
+        if (!user) return null;
+        if (platformRole === 'SUPER_ADMIN') return '/super-admin';
+
+        const eligible = getEligibleMemberships(normalizeMembershipRows(memberships));
+        const tenantIds = new Set(eligible.map((m) => m.tenantId));
+        if (tenantIds.size > 1) return '/my-communities';
+        const primary = pickHighestRoleMembership(eligible);
+        if (!primary?.tenantId) return null;
+        const tenant = await apiClient<{ slug: string }>(`/api/tenants/id/${primary.tenantId}`);
+        return getDefaultTenantRoute(tenant.slug, primary);
+      },
       signOut: async () => {
         clearImpersonation();
         await logout();

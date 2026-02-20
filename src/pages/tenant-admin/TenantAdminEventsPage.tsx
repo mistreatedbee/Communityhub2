@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesDelete, tenantFeaturesGet, tenantFeaturesPost } from '../../lib/tenantFeatures';
+import { SafeImage } from '../../components/ui/SafeImage';
 
 type EventRow = {
   _id: string;
@@ -116,7 +117,7 @@ export function TenantAdminEventsPage() {
             className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-[var(--color-primary)] hover:shadow-sm transition-colors flex gap-3"
           >
             {e.thumbnailUrl ? (
-              <img src={e.thumbnailUrl} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
+              <SafeImage src={e.thumbnailUrl} alt={e.title} fallbackSrc="/image-fallback.svg" className="w-16 h-16 rounded-lg object-cover shrink-0" />
             ) : null}
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-gray-900">{e.title}</p>

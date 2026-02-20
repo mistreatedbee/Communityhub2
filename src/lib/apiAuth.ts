@@ -7,6 +7,7 @@ export type ApiSessionUser = {
   phone?: string;
   avatarUrl?: string;
   globalRole: 'SUPER_ADMIN' | 'USER';
+  status?: 'ACTIVE' | 'SUSPENDED' | 'BANNED';
 };
 
 export type ApiMembership = {

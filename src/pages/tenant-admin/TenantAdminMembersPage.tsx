@@ -15,13 +15,7 @@ type Member = {
 };
 
 const ROLES: Member['role'][] = ['MEMBER', 'MODERATOR', 'ADMIN', 'OWNER'];
-
-const statusCycle: Record<Member['status'], Member['status']> = {
-  PENDING: 'ACTIVE',
-  ACTIVE: 'SUSPENDED',
-  SUSPENDED: 'BANNED',
-  BANNED: 'ACTIVE'
-};
+const STATUSES: Member['status'][] = ['PENDING', 'ACTIVE', 'SUSPENDED', 'BANNED'];
 
 export function TenantAdminMembersPage() {
   const { tenant } = useTenant();
@@ -29,6 +23,7 @@ export function TenantAdminMembersPage() {
   const [items, setItems] = useState<Member[]>([]);
   const [roleModalMember, setRoleModalMember] = useState<Member | null>(null);
   const [roleModalValue, setRoleModalValue] = useState<Member['role']>('MEMBER');
+  const [statusModalValue, setStatusModalValue] = useState<Member['status']>('ACTIVE');
   const [roleSaving, setRoleSaving] = useState(false);
 
   const load = async () => {
@@ -44,6 +39,7 @@ export function TenantAdminMembersPage() {
   const openRoleModal = (member: Member) => {
     setRoleModalMember(member);
     setRoleModalValue(member.role);
+    setStatusModalValue(member.status);
   };
 
   const saveRole = async () => {
@@ -52,29 +48,15 @@ export function TenantAdminMembersPage() {
     try {
       await tenantFeaturesPut(tenant.id, `/members/${roleModalMember.userId._id}`, {
         role: roleModalValue,
-        status: roleModalMember.status
+        status: statusModalValue
       });
-      addToast('Role updated', 'success');
+      addToast('Member updated', 'success');
       await load();
       setRoleModalMember(null);
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to update role', 'error');
     } finally {
       setRoleSaving(false);
-    }
-  };
-
-  const cycleStatus = async (member: Member) => {
-    if (!tenant?.id || !member.userId?._id) return;
-    try {
-      await tenantFeaturesPut(tenant.id, `/members/${member.userId._id}`, {
-        role: member.role,
-        status: statusCycle[member.status]
-      });
-      addToast('Status updated', 'success');
-      await load();
-    } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Failed to update status', 'error');
     }
   };
 
@@ -120,8 +102,7 @@ export function TenantAdminMembersPage() {
                 <p className="text-xs text-gray-500">Joined {new Date(member.joinedAt).toLocaleString()}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => openRoleModal(member)}>Change role</Button>
-                <Button variant="ghost" onClick={() => void cycleStatus(member)}>Change status</Button>
+                <Button variant="outline" onClick={() => openRoleModal(member)}>Edit member</Button>
               </div>
             </div>
           </div>
@@ -131,7 +112,7 @@ export function TenantAdminMembersPage() {
       <Modal
         isOpen={!!roleModalMember}
         onClose={() => setRoleModalMember(null)}
-        title="Change role"
+        title="Edit member"
         size="sm"
         footer={
           <>
@@ -153,6 +134,16 @@ export function TenantAdminMembersPage() {
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1 mt-3">Status</label>
+            <select
+              className="w-full rounded-lg border border-gray-300 p-2 text-sm"
+              value={statusModalValue}
+              onChange={(e) => setStatusModalValue(e.target.value as Member['status'])}
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
               ))}
             </select>
           </>

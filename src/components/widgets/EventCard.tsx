@@ -4,6 +4,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Event } from '../../types';
+import { SafeImage } from '../ui/SafeImage';
 interface EventCardProps {
   event: Event;
   compact?: boolean;
@@ -13,9 +14,10 @@ export function EventCard({ event, compact = false }: EventCardProps) {
     <Card className="h-full flex flex-col group" hoverable>
       <div className="relative h-48 overflow-hidden bg-gray-100">
         {event.imageUrl ?
-        <img
+        <SafeImage
           src={event.imageUrl}
           alt={event.title}
+          fallbackSrc="/image-fallback.svg"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> :
 
 

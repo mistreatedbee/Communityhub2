@@ -5,7 +5,9 @@ import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesDelete, tenantFeaturesGet, tenantFeaturesPost } from '../../lib/tenantFeatures';
+import { uploadTenantEventThumbnail } from '../../lib/tenantUpload';
 import { SafeImage } from '../../components/ui/SafeImage';
+import { TenantFileImage } from '../../components/ui/TenantFileImage';
 
 type EventRow = {
   _id: string;
@@ -16,6 +18,7 @@ type EventRow = {
   isOnline?: boolean;
   meetingLink?: string;
   thumbnailUrl?: string;
+  thumbnailFileId?: string;
 };
 
 export function TenantAdminEventsPage() {
@@ -31,6 +34,8 @@ export function TenantAdminEventsPage() {
   const [isOnline, setIsOnline] = useState(false);
   const [meetingLink, setMeetingLink] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [uploadingThumb, setUploadingThumb] = useState(false);
 
   const load = async () => {
     if (!tenant?.id) return;
@@ -47,7 +52,15 @@ export function TenantAdminEventsPage() {
 
   const create = async () => {
     if (!tenant?.id || !title.trim() || !startsAt) return;
+    setUploadingThumb(true);
     try {
+      let thumbnailFileId: string | undefined;
+      let thumbnailFileName: string | undefined;
+      if (thumbnailFile) {
+        const res = await uploadTenantEventThumbnail(tenant.id, thumbnailFile);
+        thumbnailFileId = res.fileId;
+        thumbnailFileName = res.fileName;
+      }
       const created = await tenantFeaturesPost<{ _id: string }>(tenant.id, '/events', {
         title,
         description,
@@ -55,7 +68,9 @@ export function TenantAdminEventsPage() {
         location,
         isOnline,
         meetingLink: isOnline ? meetingLink : '',
-        thumbnailUrl: thumbnailUrl || ''
+        thumbnailUrl: thumbnailUrl || '',
+        thumbnailFileId,
+        thumbnailFileName: thumbnailFileName || ''
       });
       addToast('Event created', 'success');
       setTitle('');
@@ -65,12 +80,15 @@ export function TenantAdminEventsPage() {
       setIsOnline(false);
       setMeetingLink('');
       setThumbnailUrl('');
+      setThumbnailFile(null);
       await load();
       if (created?._id && tenantSlug) {
         navigate(`/c/${tenantSlug}/admin/events/${created._id}`);
       }
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to create event', 'error');
+    } finally {
+      setUploadingThumb(false);
     }
   };
 
@@ -96,7 +114,17 @@ export function TenantAdminEventsPage() {
         </div>
         <Input label="Starts At" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
         <Input label="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
-        <Input label="Thumbnail image URL (optional)" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail image (optional)</label>
+          <input
+            type="file"
+            accept="image/*"
+            className="block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium"
+            onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+            disabled={uploadingThumb}
+          />
+          {thumbnailFile && <p className="mt-1 text-sm text-gray-600">Selected: {thumbnailFile.name}</p>}
+        </div>
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={isOnline} onChange={(e) => setIsOnline(e.target.checked)} />
           Online event
@@ -104,7 +132,7 @@ export function TenantAdminEventsPage() {
         {isOnline && (
           <Input label="Meeting link" value={meetingLink} onChange={(e) => setMeetingLink(e.target.value)} placeholder="https://meet.google.com/..." />
         )}
-        <Button onClick={() => void create()}>Create event</Button>
+        <Button onClick={() => void create()} disabled={uploadingThumb}>Create event</Button>
       </div>
       <div className="space-y-3">
         {items.map((e) => (
@@ -116,7 +144,15 @@ export function TenantAdminEventsPage() {
             onKeyDown={(ev) => ev.key === 'Enter' && navigate(`/c/${tenantSlug}/admin/events/${e._id}`)}
             className="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-[var(--color-primary)] hover:shadow-sm transition-colors flex gap-3"
           >
-            {e.thumbnailUrl ? (
+            {e.thumbnailFileId && tenant?.id ? (
+              <TenantFileImage
+                tenantId={tenant.id}
+                fileId={e.thumbnailFileId}
+                alt={e.title}
+                className="w-16 h-16 rounded-lg object-cover shrink-0"
+                fallbackSrc="/image-fallback.svg"
+              />
+            ) : e.thumbnailUrl ? (
               <SafeImage src={e.thumbnailUrl} alt={e.title} fallbackSrc="/image-fallback.svg" className="w-16 h-16 rounded-lg object-cover shrink-0" />
             ) : null}
             <div className="min-w-0 flex-1">

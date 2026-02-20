@@ -244,11 +244,12 @@ export function App() {
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
             </Routes>
             </Router>
           </ErrorBoundary>
         </AuthProvider>
       </ToastProvider>
-    </ThemeProvider>);
-
+    </ThemeProvider>
+  );
 }

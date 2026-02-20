@@ -5,6 +5,9 @@ import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesGet, tenantFeaturesPut } from '../../lib/tenantFeatures';
+import { uploadTenantEventThumbnail } from '../../lib/tenantUpload';
+import { TenantFileImage } from '../../components/ui/TenantFileImage';
+import { SafeImage } from '../../components/ui/SafeImage';
 
 type EventRow = {
   _id: string;
@@ -15,6 +18,8 @@ type EventRow = {
   isOnline?: boolean;
   meetingLink?: string;
   thumbnailUrl?: string;
+  thumbnailFileId?: string;
+  thumbnailFileName?: string;
 };
 
 export function TenantAdminEventEditPage() {
@@ -29,6 +34,8 @@ export function TenantAdminEventEditPage() {
   const [isOnline, setIsOnline] = useState(false);
   const [meetingLink, setMeetingLink] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [uploadingThumb, setUploadingThumb] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -56,6 +63,18 @@ export function TenantAdminEventEditPage() {
     if (!tenant?.id || !eventId) return;
     setSaving(true);
     try {
+      let thumbnailFileId: string | undefined;
+      let thumbnailFileName: string | undefined;
+      if (thumbnailFile) {
+        setUploadingThumb(true);
+        const res = await uploadTenantEventThumbnail(tenant.id, thumbnailFile);
+        thumbnailFileId = res.fileId;
+        thumbnailFileName = res.fileName;
+        setUploadingThumb(false);
+      } else if (event?.thumbnailFileId) {
+        thumbnailFileId = event.thumbnailFileId;
+        thumbnailFileName = event.thumbnailFileName;
+      }
       await tenantFeaturesPut(tenant.id, `/events/${eventId}`, {
         title,
         description,
@@ -63,14 +82,18 @@ export function TenantAdminEventEditPage() {
         location,
         isOnline,
         meetingLink,
-        thumbnailUrl
+        thumbnailUrl,
+        ...(thumbnailFileId && { thumbnailFileId }),
+        ...(thumbnailFileName !== undefined && { thumbnailFileName: thumbnailFileName || '' })
       });
       addToast('Event updated', 'success');
+      setThumbnailFile(null);
       await load();
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to update event', 'error');
     } finally {
       setSaving(false);
+      setUploadingThumb(false);
     }
   };
 
@@ -102,7 +125,30 @@ export function TenantAdminEventEditPage() {
         </div>
         <Input label="Starts At" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
         <Input label="Location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Venue or address" />
-        <Input label="Thumbnail image URL (optional)" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail image (optional)</label>
+          {event.thumbnailFileId && tenant?.id ? (
+            <div className="mb-2">
+              <TenantFileImage
+                tenantId={tenant.id}
+                fileId={event.thumbnailFileId}
+                alt={event.title}
+                className="w-24 h-24 rounded object-cover"
+                fallbackSrc="/image-fallback.svg"
+              />
+            </div>
+          ) : event.thumbnailUrl ? (
+            <SafeImage src={event.thumbnailUrl} alt={event.title} className="w-24 h-24 rounded object-cover mb-2" />
+          ) : null}
+          <input
+            type="file"
+            accept="image/*"
+            className="block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0"
+            onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+            disabled={uploadingThumb}
+          />
+          {thumbnailFile && <p className="mt-1 text-sm text-gray-600">New thumbnail: {thumbnailFile.name}</p>}
+        </div>
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={isOnline} onChange={(e) => setIsOnline(e.target.checked)} />
           Online event
@@ -110,7 +156,7 @@ export function TenantAdminEventEditPage() {
         {isOnline && (
           <Input label="Meeting link" value={meetingLink} onChange={(e) => setMeetingLink(e.target.value)} placeholder="https://meet.google.com/..." />
         )}
-        <Button onClick={() => void save()} isLoading={saving}>
+        <Button onClick={() => void save()} isLoading={saving || uploadingThumb} disabled={saving || uploadingThumb}>
           Save changes
         </Button>
       </div>

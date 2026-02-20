@@ -98,8 +98,21 @@ export function App() {
                 <Route path="/contact-sales" element={<ContactSalesPage />} />
               </Route>
 
-              <Route element={<TenantRouteProvider />}>
-                <Route path="/c/:tenantSlug" element={<CommunityLayout />}>
+              {/* Auth and onboarding: not wrapped by TenantRouteProvider so /login and /enter-license do not redirect to /communities */}
+              <Route path="/admin" element={<AdminEntryPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/enter-license" element={<EnterLicensePage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/setup-community" element={<SetupCommunityPage />} />
+              <Route path="/register" element={<Navigate to="/enter-license" replace />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/my-communities" element={<RequireAuth><MyCommunitiesPage /></RequireAuth>} />
+              <Route path="/debug-session" element={import.meta.env.DEV ? <DebugSessionPage /> : <Navigate to="/" replace />} />
+              <Route path="/debug-auth" element={import.meta.env.DEV ? <DebugSessionPage /> : <Navigate to="/" replace />} />
+
+              {/* Tenant routes: TenantRouteProvider only wraps /c/:tenantSlug so it receives tenantSlug from URL */}
+              <Route path="/c/:tenantSlug" element={<TenantRouteProvider />}>
+                <Route element={<CommunityLayout />}>
                   <Route index element={<TenantPublicPage />} />
                   <Route path="join" element={<TenantJoinPage />} />
                   <Route path="pending" element={<TenantPendingPage />} />
@@ -174,24 +187,10 @@ export function App() {
                     }
                   />
                 </Route>
-
-              <Route path="/admin" element={<AdminEntryPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/enter-license" element={<EnterLicensePage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/setup-community" element={<SetupCommunityPage />} />
-              <Route path="/register" element={<Navigate to="/enter-license" replace />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/my-communities" element={<RequireAuth><MyCommunitiesPage /></RequireAuth>} />
-              <Route path="/debug-session" element={import.meta.env.DEV ? <DebugSessionPage /> : <Navigate to="/" replace />} />
-              <Route path="/debug-auth" element={import.meta.env.DEV ? <DebugSessionPage /> : <Navigate to="/" replace />} />
-
-              <Route element={<TenantRouteProvider />}>
-                <Route path="/c/:tenantSlug/app" element={<RedirectAppToCommunity />} />
-                <Route path="/c/:tenantSlug/app/*" element={<RedirectAppSplatToCommunity />} />
-
+                <Route path="app" element={<RedirectAppToCommunity />} />
+                <Route path="app/*" element={<RedirectAppSplatToCommunity />} />
                 <Route
-                  path="/c/:tenantSlug/admin"
+                  path="admin"
                   element={
                     <RequireAuth>
                       <RequireTenantRole roles={['admin', 'owner', 'supervisor']}>
@@ -244,7 +243,6 @@ export function App() {
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
             </Routes>
             </Router>
           </ErrorBoundary>

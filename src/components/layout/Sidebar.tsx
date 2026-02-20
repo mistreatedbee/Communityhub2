@@ -38,7 +38,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
   const tenantBase = tenantSlug ? `/c/${tenantSlug}` : '/communities';
   const memberItems: NavItem[] = [
     {
-      label: 'Feed',
+      label: 'Home',
       href: `${tenantBase}/app`,
       icon: LayoutDashboard
     },
@@ -84,6 +84,11 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
       label: 'Overview',
       href: `${tenantBase}/admin`,
       icon: Shield
+    },
+    {
+      label: 'View Member Landing Page',
+      href: `${tenantBase}/app`,
+      icon: LayoutDashboard
     },
     {
       label: 'Members',
@@ -134,6 +139,11 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
       label: 'Community Profile & Settings',
       href: `${tenantBase}/admin/settings`,
       icon: Settings
+    },
+    {
+      label: 'Home Page Builder',
+      href: `${tenantBase}/admin/home-builder`,
+      icon: Globe
     },
     {
       label: 'Analytics',

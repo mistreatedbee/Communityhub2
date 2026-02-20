@@ -5,43 +5,39 @@ import { Button } from '../../components/ui/Button';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasLicenseSession } from '../../utils/licenseToken';
-import { getDefaultTenantRoute, getEligibleMemberships, normalizeMemberships, pickHighestRoleMembership } from '../../utils/membershipRouting';
-import { apiClient } from '../../lib/apiClient';
+import { Spinner } from '../../components/ui/Spinner';
 
 export function HomePage() {
   const { organization } = useTheme();
-  const { user, loading, platformRole, memberships } = useAuth();
+  const { user, loading, resolveDashboardTarget } = useAuth();
   const navigate = useNavigate();
+  const [dashboardTarget, setDashboardTarget] = React.useState<string | null>(null);
+  const [dashboardLoading, setDashboardLoading] = React.useState(false);
 
   useEffect(() => {
-    if (loading || !user) return;
-
-    if (platformRole === 'SUPER_ADMIN') {
-      navigate('/super-admin', { replace: true });
-      return;
-    }
-
-    const eligibleMemberships = getEligibleMemberships(normalizeMemberships(memberships));
-    const uniqueTenantIds = new Set(eligibleMemberships.map((m) => m.tenantId));
-    if (uniqueTenantIds.size > 1) {
-      navigate('/my-communities', { replace: true });
-      return;
-    }
-
-    const primary = pickHighestRoleMembership(eligibleMemberships);
-    if (primary?.tenantId) {
-      void apiClient<{ slug: string }>(`/api/tenants/id/${primary.tenantId}`)
-        .then((tenant) => {
-          navigate(getDefaultTenantRoute(tenant.slug, primary), { replace: true });
-        })
-        .catch(() => navigate('/communities', { replace: true }));
-      return;
-    }
-
-    if (hasLicenseSession()) {
+    if (!user && hasLicenseSession()) {
       navigate('/setup-community', { replace: true });
     }
-  }, [loading, user, platformRole, memberships, navigate]);
+  }, [user, navigate]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!user) {
+      setDashboardTarget(null);
+      return;
+    }
+    setDashboardLoading(true);
+    void resolveDashboardTarget()
+      .then((target) => {
+        if (mounted) setDashboardTarget(target);
+      })
+      .finally(() => {
+        if (mounted) setDashboardLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [user, resolveDashboardTarget]);
 
   return (
     <div className="bg-white">
@@ -57,6 +53,18 @@ export function HomePage() {
           <Link to="/communities">
             <Button size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>Browse Communities</Button>
           </Link>
+          {user && dashboardTarget ? (
+            <Link to={dashboardTarget}>
+              <Button size="lg" variant="secondary">
+                {dashboardTarget === '/my-communities' ? 'Go to My Communities' : 'Go to My Community'}
+              </Button>
+            </Link>
+          ) : null}
+          {user && dashboardLoading ? (
+            <div className="inline-flex items-center justify-center px-4">
+              <Spinner size="sm" />
+            </div>
+          ) : null}
           <Link to="/admin">
             <Button size="lg" variant="outline">Admin / Create a Community Hub</Button>
           </Link>

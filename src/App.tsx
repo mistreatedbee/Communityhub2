@@ -56,6 +56,7 @@ import { TenantAdminAnalyticsPage } from './pages/tenant-admin/TenantAdminAnalyt
 import { TenantAdminBillingPage } from './pages/tenant-admin/TenantAdminBillingPage';
 import { TenantAdminOnboardingPage } from './pages/tenant-admin/TenantAdminOnboardingPage';
 import { TenantAdminSettingsPage } from './pages/tenant-admin/TenantAdminSettingsPage';
+import { TenantAdminHomeBuilderPage } from './pages/tenant-admin/TenantAdminHomeBuilderPage';
 import { SuperAdminDashboardPage } from './pages/super-admin/SuperAdminDashboardPage';
 import { OrganizationsPage } from './pages/super-admin/OrganizationsPage';
 import { TenantDetailPage } from './pages/super-admin/TenantDetailPage';
@@ -131,6 +132,7 @@ export function App() {
                 >
                   <Route index element={<TenantAdminDashboardPage />} />
                   <Route path="onboarding" element={<TenantAdminOnboardingPage />} />
+                  <Route path="home-builder" element={<TenantAdminHomeBuilderPage />} />
                   <Route path="announcements" element={<TenantAdminAnnouncementsPage />} />
                   <Route path="members" element={<TenantAdminMembersPage />} />
                   <Route path="invitations" element={<TenantAdminInvitationsPage />} />

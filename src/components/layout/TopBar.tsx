@@ -33,9 +33,13 @@ export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' 
         return;
       }
 
-      const all = await apiClient<Array<{ id: string; name: string; slug: string }>>('/api/admin/tenants').catch(() => []);
-      const ids = new Set(memberships.map((m) => m.tenantId));
-      setMemberTenants(all.filter((t) => ids.has(t.id)));
+      const uniqueIds = Array.from(new Set(memberships.map((m) => m.tenantId)));
+      const rows = await Promise.all(
+        uniqueIds.map((id) =>
+          apiClient<{ id: string; name: string; slug: string }>(`/api/tenants/id/${id}`).catch(() => null)
+        )
+      );
+      setMemberTenants(rows.filter(Boolean) as Array<{ id: string; name: string; slug: string }>);
     };
     void loadTenants();
   }, [memberships]);

@@ -22,62 +22,47 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NavItem } from '../../types';
+const MEMBER_SECTION_KEYS: Record<string, string> = {
+  'Announcements': 'announcements',
+  'Resources': 'resources',
+  'Groups': 'groups',
+  'Events': 'events',
+  'Programs': 'programs'
+};
+
 interface SidebarProps {
   isCollapsed: boolean;
   toggleCollapse: () => void;
   variant: 'tenant-admin' | 'tenant-member' | 'super-admin';
   tenantSlug?: string;
   tenantName?: string;
+  enabledSections?: string[];
 }
-export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '', tenantName }: SidebarProps) {
+export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '', tenantName, enabledSections }: SidebarProps) {
   const { organization } = useTheme();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isSuperAdminRoute = variant === 'super-admin';
   const tenantBase = tenantSlug ? `/c/${tenantSlug}` : '/communities';
-  const memberItems: NavItem[] = [
-    {
-      label: 'Home',
-      href: tenantBase,
-      icon: LayoutDashboard
-    },
-    {
-      label: 'Announcements',
-      href: `${tenantBase}/announcements`,
-      icon: Megaphone
-    },
-    {
-      label: 'Resources',
-      href: `${tenantBase}/resources`,
-      icon: FileText
-    },
-    {
-      label: 'Groups',
-      href: `${tenantBase}/groups`,
-      icon: Users
-    },
-    {
-      label: 'Events',
-      href: `${tenantBase}/events`,
-      icon: Calendar
-    },
-    {
-      label: 'Programs',
-      href: `${tenantBase}/programs`,
-      icon: FileText
-    },
-    {
-      label: 'Notifications',
-      href: `${tenantBase}/notifications`,
-      icon: Bell
-    },
-    {
-      label: 'Profile',
-      href: `${tenantBase}/profile`,
-      icon: Settings
-    }
+  const allMemberItems: NavItem[] = [
+    { label: 'Home', href: tenantBase, icon: LayoutDashboard },
+    { label: 'Announcements', href: `${tenantBase}/announcements`, icon: Megaphone },
+    { label: 'Resources', href: `${tenantBase}/resources`, icon: FileText },
+    { label: 'Groups', href: `${tenantBase}/groups`, icon: Users },
+    { label: 'Events', href: `${tenantBase}/events`, icon: Calendar },
+    { label: 'Programs', href: `${tenantBase}/programs`, icon: FileText },
+    { label: 'Notifications', href: `${tenantBase}/notifications`, icon: Bell },
+    { label: 'Profile', href: `${tenantBase}/profile`, icon: Settings }
   ];
+  const memberItems =
+    enabledSections && enabledSections.length > 0
+      ? allMemberItems.filter((item) => {
+          const sectionKey = MEMBER_SECTION_KEYS[item.label];
+          if (!sectionKey) return true;
+          return enabledSections.includes(sectionKey);
+        })
+      : allMemberItems;
 
   const adminItems: NavItem[] = [
     {

@@ -40,7 +40,7 @@ type PublicPreview = {
 export function TenantPublicPage() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { user } = useAuth();
-  const { membership } = useTenant();
+  const { membership, enabledSections } = useTenant();
   const [preview, setPreview] = useState<PublicPreview | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -99,10 +99,21 @@ export function TenantPublicPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link to={`/c/${tenant.slug}/events`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Events</Link>
-            <Link to={`/c/${tenant.slug}/groups`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Groups</Link>
-            <Link to={`/c/${tenant.slug}/resources`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Resources</Link>
-            <Link to={`/c/${tenant.slug}/programs`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Programs</Link>
+            {enabledSections?.includes('events') && (
+              <Link to={`/c/${tenant.slug}/events`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Events</Link>
+            )}
+            {enabledSections?.includes('groups') && (
+              <Link to={`/c/${tenant.slug}/groups`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Groups</Link>
+            )}
+            {enabledSections?.includes('resources') && (
+              <Link to={`/c/${tenant.slug}/resources`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Resources</Link>
+            )}
+            {enabledSections?.includes('programs') && (
+              <Link to={`/c/${tenant.slug}/programs`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Programs</Link>
+            )}
+            {enabledSections?.includes('announcements') && (
+              <Link to={`/c/${tenant.slug}/announcements`} className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Announcements</Link>
+            )}
             <Link to={`/c/${tenant.slug}/profile`} className="px-3 py-2 rounded-lg bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90">Profile</Link>
           </div>
         </div>

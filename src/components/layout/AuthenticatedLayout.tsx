@@ -7,8 +7,9 @@ type LayoutProps = {
   tenantSlug?: string;
   tenantName?: string;
   tenantId?: string | null;
+  enabledSections?: string[];
 };
-export function AuthenticatedLayout({ variant, tenantSlug, tenantName, tenantId }: LayoutProps) {
+export function AuthenticatedLayout({ variant, tenantSlug, tenantName, tenantId, enabledSections }: LayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   return (
     <div className="min-h-screen bg-gray-50">
@@ -17,7 +18,9 @@ export function AuthenticatedLayout({ variant, tenantSlug, tenantName, tenantId 
         toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         variant={variant}
         tenantSlug={tenantSlug}
-        tenantName={tenantName} />
+        tenantName={tenantName}
+        enabledSections={enabledSections}
+      />
 
 
       <TopBar isSidebarCollapsed={isSidebarCollapsed} variant={variant} tenantId={tenantId} tenantSlug={tenantSlug} />

@@ -11,6 +11,7 @@ import { ToastProvider } from './components/ui/Toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { PublicLayout } from './components/layout/PublicLayout';
+import { CommunityLayout } from './components/layout/CommunityLayout';
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout';
 import { RequireAuth } from './components/auth/RequireAuth';
 import { RequireSuperAdmin } from './components/auth/RequireSuperAdmin';
@@ -95,12 +96,84 @@ export function App() {
                 <Route path="/communities" element={<CommunitiesPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/contact-sales" element={<ContactSalesPage />} />
+              </Route>
+
               <Route element={<TenantRouteProvider />}>
-                <Route path="/c/:tenantSlug" element={<TenantPublicPage />} />
-                <Route path="/c/:tenantSlug/join" element={<TenantJoinPage />} />
-                <Route path="/c/:tenantSlug/pending" element={<TenantPendingPage />} />
-              </Route>
-              </Route>
+                <Route path="/c/:tenantSlug" element={<CommunityLayout />}>
+                  <Route index element={<TenantPublicPage />} />
+                  <Route path="join" element={<TenantJoinPage />} />
+                  <Route path="pending" element={<TenantPendingPage />} />
+                  <Route
+                    path="announcements"
+                    element={
+                      <RequireAuth>
+                        <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
+                          <TenantMemberAnnouncementsPage />
+                        </RequireTenantRole>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="events"
+                    element={
+                      <RequireAuth>
+                        <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
+                          <TenantMemberEventsPage />
+                        </RequireTenantRole>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="groups"
+                    element={
+                      <RequireAuth>
+                        <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
+                          <TenantMemberGroupsPage />
+                        </RequireTenantRole>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="resources"
+                    element={
+                      <RequireAuth>
+                        <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
+                          <TenantMemberResourcesPage />
+                        </RequireTenantRole>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="programs"
+                    element={
+                      <RequireAuth>
+                        <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
+                          <TenantMemberProgramsPage />
+                        </RequireTenantRole>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="notifications"
+                    element={
+                      <RequireAuth>
+                        <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
+                          <TenantMemberNotificationsPage />
+                        </RequireTenantRole>
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="profile"
+                    element={
+                      <RequireAuth>
+                        <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
+                          <TenantMemberProfilePage />
+                        </RequireTenantRole>
+                      </RequireAuth>
+                    }
+                  />
+                </Route>
 
               <Route path="/admin" element={<AdminEntryPage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -116,23 +189,6 @@ export function App() {
               <Route element={<TenantRouteProvider />}>
                 <Route path="/c/:tenantSlug/app" element={<RedirectAppToCommunity />} />
                 <Route path="/c/:tenantSlug/app/*" element={<RedirectAppSplatToCommunity />} />
-                <Route
-                  element={
-                    <RequireAuth>
-                      <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
-                        <TenantLayoutWrapper variant="tenant-member" />
-                      </RequireTenantRole>
-                    </RequireAuth>
-                  }
-                >
-                  <Route path="/c/:tenantSlug/announcements" element={<TenantMemberAnnouncementsPage />} />
-                  <Route path="/c/:tenantSlug/events" element={<TenantMemberEventsPage />} />
-                  <Route path="/c/:tenantSlug/groups" element={<TenantMemberGroupsPage />} />
-                  <Route path="/c/:tenantSlug/resources" element={<TenantMemberResourcesPage />} />
-                  <Route path="/c/:tenantSlug/programs" element={<TenantMemberProgramsPage />} />
-                  <Route path="/c/:tenantSlug/notifications" element={<TenantMemberNotificationsPage />} />
-                  <Route path="/c/:tenantSlug/profile" element={<TenantMemberProfilePage />} />
-                </Route>
 
                 <Route
                   path="/c/:tenantSlug/admin"

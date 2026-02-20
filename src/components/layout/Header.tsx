@@ -104,7 +104,7 @@ export function Header() {
                   disabled={dashboardLoading || !dashboardTarget}
                   leftIcon={dashboardLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
                 >
-                  Go to Dashboard
+                  {dashboardTarget?.startsWith('/c/') ? 'Go to Community' : 'Go to Dashboard'}
                 </Button>
                 <Dropdown
                   align="right"
@@ -178,7 +178,7 @@ export function Header() {
                     }}
                     disabled={dashboardLoading || !dashboardTarget}
                   >
-                    Go to Dashboard
+                    {dashboardTarget?.startsWith('/c/') ? 'Go to Community' : 'Go to Dashboard'}
                   </Button>
                   <Button
                     variant="ghost"

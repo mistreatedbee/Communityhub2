@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Mail, Lock, User } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Mail, Lock, User, Phone } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -15,6 +15,7 @@ export function SignupPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [licenseState, setLicenseState] = useState<'loading' | 'valid' | 'invalid'>('loading');
   const { organization } = useTheme();
@@ -62,7 +63,8 @@ export function SignupPage() {
       await registerWithPassword({
         email: email.trim().toLowerCase(),
         password,
-        fullName: fullName.trim()
+        fullName: fullName.trim(),
+        phone: phone.trim() || undefined
       });
       addToast('Account created. Set up your community.', 'success');
       navigate('/setup-community', { replace: true });
@@ -147,6 +149,14 @@ export function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 leftIcon={<Mail className="w-5 h-5" />}
+              />
+              <Input
+                label="Phone (optional)"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                leftIcon={<Phone className="w-5 h-5" />}
+                placeholder="e.g. +27 12 345 6789"
               />
               <Input
                 label="Password"

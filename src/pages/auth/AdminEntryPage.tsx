@@ -20,6 +20,9 @@ export function AdminEntryPage() {
           <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
             This area is for organizations creating and managing their own Community Hub.
           </p>
+          <p className="text-sm text-gray-500 mt-3">
+            New? Enter your license key. Already have an account? Log in.
+          </p>
         </div>
 
         <Card className="border-0 ring-1 ring-gray-200 shadow-xl">

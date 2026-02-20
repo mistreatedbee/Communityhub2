@@ -133,10 +133,10 @@ export function Header() {
               </Link>
             ) : (
               <>
-                <Link to="/admin">
+                <Link to="/login">
                   <Button variant="ghost" size="sm">Admin Login</Button>
                 </Link>
-                <Link to="/admin">
+                <Link to="/enter-license">
                   <Button size="sm">Create Community Hub</Button>
                 </Link>
               </>
@@ -198,10 +198,10 @@ export function Header() {
                 </Link>
               ) : (
                 <>
-                  <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">Admin Login</Button>
                   </Link>
-                  <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/enter-license" onClick={() => setIsMenuOpen(false)}>
                     <Button className="w-full justify-start">Create Community Hub</Button>
                   </Link>
                 </>

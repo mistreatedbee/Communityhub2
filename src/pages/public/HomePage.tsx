@@ -65,8 +65,11 @@ export function HomePage() {
               <Spinner size="sm" />
             </div>
           ) : null}
-          <Link to="/admin">
-            <Button size="lg" variant="outline">Admin / Create a Community Hub</Button>
+          <Link to="/login">
+            <Button size="lg" variant="outline">Admin Login</Button>
+          </Link>
+          <Link to="/enter-license">
+            <Button size="lg" variant="outline">Create a Community Hub</Button>
           </Link>
         </div>
         <p className="mt-3 text-xs text-gray-500">Admin access is for organisations managing a community hub.</p>

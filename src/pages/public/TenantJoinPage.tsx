@@ -44,13 +44,15 @@ export function TenantJoinPage() {
   const inviteToken = useMemo(() => searchParams.get('invite')?.trim() || '', [searchParams]);
   const [joinInfo, setJoinInfo] = useState<JoinInfo | null>(null);
   const [customFields, setCustomFields] = useState<Record<string, string | boolean>>({});
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [surname, setSurname] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(true);
-  const [fullNameError, setFullNameError] = useState<string | null>(null);
+  const [firstNameError, setFirstNameError] = useState<string | null>(null);
+  const [surnameError, setSurnameError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -89,18 +91,24 @@ export function TenantJoinPage() {
     }
 
     // Clear previous errors
-    setFullNameError(null);
+    setFirstNameError(null);
+    setSurnameError(null);
     setPhoneError(null);
     setEmailError(null);
     setPasswordError(null);
 
     // Validate all required fields
-    const nameErr = getRequiredFieldError(fullName, 'Full name');
+    const firstErr = getRequiredFieldError(firstName.trim(), 'Name');
+    const surErr = getRequiredFieldError(surname.trim(), 'Surname');
     const phoneErr = getRequiredFieldError(phone, 'Phone');
     let hasErrors = false;
 
-    if (nameErr) {
-      setFullNameError(nameErr);
+    if (firstErr) {
+      setFirstNameError(firstErr);
+      hasErrors = true;
+    }
+    if (surErr) {
+      setSurnameError(surErr);
       hasErrors = true;
     }
     if (phoneErr) {
@@ -123,6 +131,17 @@ export function TenantJoinPage() {
       }
     }
 
+    // Validate required custom registration fields
+    for (const field of joinInfo?.registrationFields || []) {
+      if (!field.required) continue;
+      const val = customFields[field.key];
+      if (field.fieldType === 'CHECKBOX') {
+        if (val !== true) hasErrors = true;
+      } else if (val == null || String(val).trim() === '') {
+        hasErrors = true;
+      }
+    }
+
     if (hasErrors) {
       addToast('Please fill in all required fields correctly.', 'error');
       return;
@@ -137,11 +156,12 @@ export function TenantJoinPage() {
       // Step 1: Register account if not authenticated
       if (!currentUser) {
         setRegistrationStep('registering');
+        const fullName = [firstName.trim(), surname.trim()].filter(Boolean).join(' ').trim();
         try {
           await registerWithPassword({
             email: email.trim().toLowerCase(),
             password,
-            fullName: fullName.trim(),
+            fullName,
             phone: phone.trim()
           });
           await refreshProfile();
@@ -176,11 +196,12 @@ export function TenantJoinPage() {
 
       // Step 2: Join tenant
       setRegistrationStep('joining');
+      const fullName = [firstName.trim(), surname.trim()].filter(Boolean).join(' ').trim();
       const result = await apiClient<{ pendingApproval: boolean; nextRoute?: string }>(`/api/tenants/${tenantSlug}/join`, {
         method: 'POST',
         body: JSON.stringify({
           inviteToken: inviteToken || undefined,
-          fullName: fullName.trim(),
+          fullName,
           phone: phone.trim(),
           customFields
         })
@@ -309,14 +330,27 @@ export function TenantJoinPage() {
 
         <div>
           <Input
-            label="Full Name"
-            value={fullName}
-            onChange={(e) => { setFullName(e.target.value); setFullNameError(null); }}
+            label="Name"
+            value={firstName}
+            onChange={(e) => { setFirstName(e.target.value); setFirstNameError(null); }}
             required
-            aria-invalid={!!fullNameError}
-            aria-describedby={fullNameError ? 'fullName-error' : undefined}
+            placeholder="First name"
+            aria-invalid={!!firstNameError}
+            aria-describedby={firstNameError ? 'firstName-error' : undefined}
           />
-          {fullNameError && <p id="fullName-error" className="text-sm text-red-600 mt-1">{fullNameError}</p>}
+          {firstNameError && <p id="firstName-error" className="text-sm text-red-600 mt-1">{firstNameError}</p>}
+        </div>
+        <div>
+          <Input
+            label="Surname"
+            value={surname}
+            onChange={(e) => { setSurname(e.target.value); setSurnameError(null); }}
+            required
+            placeholder="Last name"
+            aria-invalid={!!surnameError}
+            aria-describedby={surnameError ? 'surname-error' : undefined}
+          />
+          {surnameError && <p id="surname-error" className="text-sm text-red-600 mt-1">{surnameError}</p>}
         </div>
         <div>
           <Input
@@ -332,7 +366,9 @@ export function TenantJoinPage() {
 
         {(joinInfo.registrationFields || []).map((field) => (
           <div key={field.id}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+            {field.fieldType !== 'CHECKBOX' && (
+              <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+            )}
             {field.fieldType === 'TEXTAREA' ? (
               <textarea
                 className="w-full rounded-lg border border-gray-300 p-2"
@@ -340,6 +376,28 @@ export function TenantJoinPage() {
                 value={String(customFields[field.key] || '')}
                 onChange={(e) => setCustomFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
               />
+            ) : field.fieldType === 'SELECT' ? (
+              <select
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+                required={field.required}
+                value={String(customFields[field.key] ?? '')}
+                onChange={(e) => setCustomFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              >
+                <option value="">Select...</option>
+                {(field.options || []).map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : field.fieldType === 'CHECKBOX' ? (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={customFields[field.key] === true}
+                  onChange={(e) => setCustomFields((prev) => ({ ...prev, [field.key]: e.target.checked }))}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm text-gray-600">{field.required ? `${field.label} (required)` : field.label}</span>
+              </label>
             ) : (
               <Input
                 required={field.required}

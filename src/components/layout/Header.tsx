@@ -133,12 +133,8 @@ export function Header() {
               </Link>
             ) : (
               <>
-                <Link to="/login">
-                  <Button variant="ghost" size="sm">Admin Login</Button>
-                </Link>
-                <Link to="/enter-license">
-                  <Button size="sm">Create Community Hub</Button>
-                </Link>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>Admin Login</Button>
+                <Button size="sm" onClick={() => navigate('/enter-license')}>Create Community Hub</Button>
               </>
             )}
           </div>
@@ -198,12 +194,12 @@ export function Header() {
                 </Link>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">Admin Login</Button>
-                  </Link>
-                  <Link to="/enter-license" onClick={() => setIsMenuOpen(false)}>
-                    <Button className="w-full justify-start">Create Community Hub</Button>
-                  </Link>
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => { setIsMenuOpen(false); navigate('/login'); }}>
+                    Admin Login
+                  </Button>
+                  <Button className="w-full justify-start" onClick={() => { setIsMenuOpen(false); navigate('/enter-license'); }}>
+                    Create Community Hub
+                  </Button>
                 </>
               )}
             </div>

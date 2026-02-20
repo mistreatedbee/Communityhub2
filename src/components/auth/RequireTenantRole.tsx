@@ -52,7 +52,7 @@ export function RequireTenantRole({
 
   const statusAllowed = isActive || (allowPending && isPending);
   if (!tenantRole || !statusAllowed || !roleInList) {
-    const isMemberRoute = location.pathname.includes('/app');
+    const isMemberSectionRoute = /^\/c\/[^/]+\/(announcements|events|groups|resources|programs|notifications|profile)(?:\/|$)/.test(location.pathname);
 
     if (tenantSlug && tenantRole && (tenantStatus === 'ACTIVE' || tenantStatus === 'PENDING')) {
       if (tenantStatus === 'PENDING') {
@@ -68,12 +68,12 @@ export function RequireTenantRole({
         return <Navigate to={`/c/${tenantSlug}/admin`} replace />;
       }
       if (import.meta.env.DEV) {
-        console.debug('[RequireTenantRole] redirecting member user', { tenantSlug, target: `/c/${tenantSlug}/app` });
+        console.debug('[RequireTenantRole] redirecting member user', { tenantSlug, target: `/c/${tenantSlug}` });
       }
-      return <Navigate to={`/c/${tenantSlug}/app`} replace />;
+      return <Navigate to={`/c/${tenantSlug}`} replace />;
     }
 
-    if (tenantSlug && isMemberRoute) {
+    if (tenantSlug && isMemberSectionRoute) {
       if (import.meta.env.DEV) {
         console.debug('[RequireTenantRole] unauthenticated member route redirect', { tenantSlug, target: `/c/${tenantSlug}/join` });
       }

@@ -66,5 +66,5 @@ export function getDefaultTenantRoute(slug: string, membership: NormalizedMember
   if (membership.status === 'PENDING') {
     return `/c/${slug}/pending`;
   }
-  return isAdminLikeRole(membership.role) ? `/c/${slug}/admin` : `/c/${slug}/app`;
+  return isAdminLikeRole(membership.role) ? `/c/${slug}/admin` : `/c/${slug}`;
 }

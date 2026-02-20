@@ -16,17 +16,27 @@ export function Header() {
   const { user, loading, displayRole, profileName, resolveDashboardTarget, signOut, memberships, platformRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const navItems: NavItem[] = [
-    { label: 'Home', href: '/' },
-    { label: 'Communities', href: '/communities' },
-    { label: 'Pricing', href: '/pricing' }
-  ];
-
   const isActive = (path: string) => {
     if (path === '/' && location.pathname !== '/') return false;
     return location.pathname.startsWith(path);
   };
   const tenantSlugInPath = location.pathname.match(/^\/c\/([^/]+)/)?.[1];
+  const isCommunityMode = Boolean(tenantSlugInPath);
+  const navItems: NavItem[] = isCommunityMode
+    ? [
+        { label: 'Home', href: `/c/${tenantSlugInPath}` },
+        { label: 'Announcements', href: `/c/${tenantSlugInPath}/announcements` },
+        { label: 'Events', href: `/c/${tenantSlugInPath}/events` },
+        { label: 'Groups', href: `/c/${tenantSlugInPath}/groups` },
+        { label: 'Resources', href: `/c/${tenantSlugInPath}/resources` },
+        { label: 'Programs', href: `/c/${tenantSlugInPath}/programs` },
+        { label: 'Back to Platform', href: '/' }
+      ]
+    : [
+        { label: 'Home', href: '/' },
+        { label: 'Communities', href: '/communities' },
+        { label: 'Pricing', href: '/pricing' }
+      ];
 
   React.useEffect(() => {
     let mounted = true;
@@ -117,6 +127,10 @@ export function Header() {
                   ]}
                 />
               </>
+            ) : isCommunityMode ? (
+              <Link to="/login" state={{ from: location.pathname }}>
+                <Button size="sm">Login / Join</Button>
+              </Link>
             ) : (
               <>
                 <Link to="/admin">
@@ -178,6 +192,10 @@ export function Header() {
                     Sign Out
                   </Button>
                 </>
+              ) : isCommunityMode ? (
+                <Link to="/login" state={{ from: location.pathname }} onClick={() => setIsMenuOpen(false)}>
+                  <Button className="w-full justify-start">Login / Join</Button>
+                </Link>
               ) : (
                 <>
                   <Link to="/admin" onClick={() => setIsMenuOpen(false)}>

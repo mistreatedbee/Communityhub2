@@ -176,7 +176,7 @@ export function TenantAdminHomeBuilderPage() {
       <div className="flex flex-wrap justify-between gap-3 items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Home Page Builder</h1>
-          <p className="text-sm text-gray-600">Configure the tenant member landing page shown at /c/{tenant?.slug}/app.</p>
+          <p className="text-sm text-gray-600">Configure the tenant member landing page shown at /c/{tenant?.slug}.</p>
         </div>
         <Button onClick={() => void save()} isLoading={saving}>Save & Publish</Button>
       </div>

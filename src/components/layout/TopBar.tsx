@@ -52,7 +52,7 @@ export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' 
         ? `/c/${tenantSlug}/admin`
         : '/communities'
       : tenantSlug
-      ? `/c/${tenantSlug}/app/profile`
+      ? `/c/${tenantSlug}/profile`
       : '/communities';
 
   return (
@@ -105,7 +105,7 @@ export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' 
               },
               ...memberTenants.map((tenant) => ({
                 label: `Switch to ${tenant.name}`,
-                href: `/c/${tenant.slug}/app`
+                href: `/c/${tenant.slug}`
               })),
               ...(variant === 'super-admin' && isImpersonating
                 ? [

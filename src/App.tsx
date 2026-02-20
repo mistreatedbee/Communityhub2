@@ -3,7 +3,8 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate } from
+  Navigate,
+  useParams } from
 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -29,7 +30,6 @@ import { EnterLicensePage } from './pages/auth/EnterLicensePage';
 import { SignupPage } from './pages/auth/SignupPage';
 import { SetupCommunityPage } from './pages/auth/SetupCommunityPage';
 import { ContactSalesPage } from './pages/public/ContactSalesPage';
-import { TenantMemberFeedPage } from './pages/tenant-member/TenantMemberFeedPage';
 import { TenantMemberAnnouncementsPage } from './pages/tenant-member/TenantMemberAnnouncementsPage';
 import { TenantMemberResourcesPage } from './pages/tenant-member/TenantMemberResourcesPage';
 import { TenantMemberNotificationsPage } from './pages/tenant-member/TenantMemberNotificationsPage';
@@ -68,6 +68,20 @@ import { SuperAdminSettingsPage } from './pages/super-admin/SuperAdminSettingsPa
 import { DebugSessionPage } from './pages/debug/DebugSessionPage';
 import { MyCommunitiesPage } from './pages/my-communities/MyCommunitiesPage';
 
+function RedirectAppToCommunity() {
+  const { tenantSlug } = useParams<{ tenantSlug: string }>();
+  if (!tenantSlug) return <Navigate to="/communities" replace />;
+  return <Navigate to={`/c/${tenantSlug}`} replace />;
+}
+
+function RedirectAppSplatToCommunity() {
+  const { tenantSlug } = useParams<{ tenantSlug: string; '*': string }>();
+  const rest = useParams<{ tenantSlug: string; '*': string }>()['*'];
+  if (!tenantSlug) return <Navigate to="/communities" replace />;
+  if (rest) return <Navigate to={`/c/${tenantSlug}/${rest}`} replace />;
+  return <Navigate to={`/c/${tenantSlug}`} replace />;
+}
+
 export function App() {
   return (
     <ThemeProvider>
@@ -100,8 +114,9 @@ export function App() {
               <Route path="/debug-auth" element={import.meta.env.DEV ? <DebugSessionPage /> : <Navigate to="/" replace />} />
 
               <Route element={<TenantRouteProvider />}>
+                <Route path="/c/:tenantSlug/app" element={<RedirectAppToCommunity />} />
+                <Route path="/c/:tenantSlug/app/*" element={<RedirectAppSplatToCommunity />} />
                 <Route
-                  path="/c/:tenantSlug/app"
                   element={
                     <RequireAuth>
                       <RequireTenantRole roles={['member', 'employee', 'supervisor', 'admin', 'owner']}>
@@ -110,14 +125,13 @@ export function App() {
                     </RequireAuth>
                   }
                 >
-                  <Route index element={<TenantMemberFeedPage />} />
-                  <Route path="announcements" element={<TenantMemberAnnouncementsPage />} />
-                  <Route path="resources" element={<TenantMemberResourcesPage />} />
-                  <Route path="groups" element={<TenantMemberGroupsPage />} />
-                  <Route path="events" element={<TenantMemberEventsPage />} />
-                  <Route path="programs" element={<TenantMemberProgramsPage />} />
-                  <Route path="notifications" element={<TenantMemberNotificationsPage />} />
-                  <Route path="profile" element={<TenantMemberProfilePage />} />
+                  <Route path="/c/:tenantSlug/announcements" element={<TenantMemberAnnouncementsPage />} />
+                  <Route path="/c/:tenantSlug/events" element={<TenantMemberEventsPage />} />
+                  <Route path="/c/:tenantSlug/groups" element={<TenantMemberGroupsPage />} />
+                  <Route path="/c/:tenantSlug/resources" element={<TenantMemberResourcesPage />} />
+                  <Route path="/c/:tenantSlug/programs" element={<TenantMemberProgramsPage />} />
+                  <Route path="/c/:tenantSlug/notifications" element={<TenantMemberNotificationsPage />} />
+                  <Route path="/c/:tenantSlug/profile" element={<TenantMemberProfilePage />} />
                 </Route>
 
                 <Route

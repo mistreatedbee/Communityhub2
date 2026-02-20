@@ -79,7 +79,7 @@ export function DebugSessionPage() {
             {platformRole === 'super_admin'
               ? '→ Should redirect to /super-admin'
               : memberships?.some((m) => m.status === 'active')
-                ? '→ Should redirect to tenant (e.g. /c/:slug/admin or /app)'
+                ? '→ Should redirect to tenant (e.g. /c/:slug/admin or /c/:slug)'
                 : '→ Should redirect to /communities or /setup-community'}
           </p>
         </section>

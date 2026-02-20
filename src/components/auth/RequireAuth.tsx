@@ -23,10 +23,10 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
       console.debug('[RequireAuth] redirecting because loading=false and user=null');
     }
     
-    // Check if this is a member route (/c/:tenantSlug/app)
-    const memberRouteMatch = location.pathname.match(/^\/c\/([^/]+)\/app/);
-    if (memberRouteMatch) {
-      const tenantSlug = memberRouteMatch[1];
+    // Check if this is a member section route (/c/:tenantSlug/announcements, etc.)
+    const memberSectionMatch = location.pathname.match(/^\/c\/([^/]+)\/(announcements|events|groups|resources|programs|notifications|profile)(?:\/|$)/);
+    if (memberSectionMatch) {
+      const tenantSlug = memberSectionMatch[1];
       return <Navigate to={`/c/${tenantSlug}/join`} replace state={{ from: location.pathname }} />;
     }
     

@@ -192,7 +192,7 @@ export function TenantJoinPage() {
         navigate(result.nextRoute || `/c/${tenantSlug}/pending`, { replace: true });
       } else {
         addToast('You joined the community.', 'success');
-        navigate(result.nextRoute || `/c/${tenantSlug}/app`, { replace: true });
+        navigate(result.nextRoute || `/c/${tenantSlug}`, { replace: true });
       }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unable to join';

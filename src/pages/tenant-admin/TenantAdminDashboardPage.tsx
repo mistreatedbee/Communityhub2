@@ -39,7 +39,7 @@ export function TenantAdminDashboardPage() {
         <p className="text-gray-500">Overview for {tenant.name}.</p>
         {tenant.slug ? (
           <div className="mt-3">
-            <Link to={`/c/${tenant.slug}/app`}>
+            <Link to={`/c/${tenant.slug}`}>
               <Button variant="outline">View Member Landing Page</Button>
             </Link>
           </div>

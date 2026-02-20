@@ -39,42 +39,42 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
   const memberItems: NavItem[] = [
     {
       label: 'Home',
-      href: `${tenantBase}/app`,
+      href: tenantBase,
       icon: LayoutDashboard
     },
     {
       label: 'Announcements',
-      href: `${tenantBase}/app/announcements`,
+      href: `${tenantBase}/announcements`,
       icon: Megaphone
     },
     {
       label: 'Resources',
-      href: `${tenantBase}/app/resources`,
+      href: `${tenantBase}/resources`,
       icon: FileText
     },
     {
       label: 'Groups',
-      href: `${tenantBase}/app/groups`,
+      href: `${tenantBase}/groups`,
       icon: Users
     },
     {
       label: 'Events',
-      href: `${tenantBase}/app/events`,
+      href: `${tenantBase}/events`,
       icon: Calendar
     },
     {
       label: 'Programs',
-      href: `${tenantBase}/app/programs`,
+      href: `${tenantBase}/programs`,
       icon: FileText
     },
     {
       label: 'Notifications',
-      href: `${tenantBase}/app/notifications`,
+      href: `${tenantBase}/notifications`,
       icon: Bell
     },
     {
       label: 'Profile',
-      href: `${tenantBase}/app/profile`,
+      href: `${tenantBase}/profile`,
       icon: Settings
     }
   ];
@@ -87,7 +87,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
     },
     {
       label: 'View Member Landing Page',
-      href: `${tenantBase}/app`,
+      href: tenantBase,
       icon: LayoutDashboard
     },
     {
@@ -209,7 +209,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
         className={`h-16 flex items-center justify-center border-b border-gray-100 px-4 shrink-0 ${isSuperAdminRoute ? 'bg-gray-900' : ''}`}>
 
         <Link
-          to={isSuperAdminRoute ? '/super-admin' : `${tenantBase}/app`}
+          to={isSuperAdminRoute ? '/super-admin' : tenantBase}
           className="flex items-center gap-2 overflow-hidden">
 
           <div

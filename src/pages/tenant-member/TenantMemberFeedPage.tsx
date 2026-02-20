@@ -107,7 +107,7 @@ export function TenantMemberFeedPage() {
   const galleryImages = [...(sections.gallery?.images || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const ctaLink = sections.hero?.ctaLink || 'events';
-  const internalCtaPath = ctaLink.startsWith('/') ? ctaLink : `/c/${tenantSlug}/app/${ctaLink}`.replace('/app//', '/app/');
+  const internalCtaPath = ctaLink.startsWith('/') ? ctaLink : `/c/${tenantSlug}/${ctaLink}`.replace(/\/+/g, '/');
   const isExternalCta = /^https?:\/\//i.test(ctaLink);
 
   return (
@@ -161,7 +161,7 @@ export function TenantMemberFeedPage() {
             <section key="announcements" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900">{sections.announcements?.title || 'Pinned Updates'}</h2>
-                <Link to={`/c/${tenantSlug}/app/announcements`} className="text-sm" style={{ color: primaryColor }}>View all</Link>
+                <Link to={`/c/${tenantSlug}/announcements`} className="text-sm" style={{ color: primaryColor }}>View all</Link>
               </div>
               {pinnedAnnouncements.length === 0 ? <p className="text-sm text-gray-500">No announcements yet.</p> : null}
               {pinnedAnnouncements.map((item) => (
@@ -185,7 +185,7 @@ export function TenantMemberFeedPage() {
             <section key="events" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900">{sections.events?.title || 'Upcoming Events'}</h2>
-                <Link to={`/c/${tenantSlug}/app/events`} className="text-sm" style={{ color: primaryColor }}>View all events</Link>
+                <Link to={`/c/${tenantSlug}/events`} className="text-sm" style={{ color: primaryColor }}>View all events</Link>
               </div>
               {upcomingEvents.length === 0 ? <p className="text-sm text-gray-500">No upcoming events.</p> : null}
               {upcomingEvents.map((item) => (
@@ -209,7 +209,7 @@ export function TenantMemberFeedPage() {
             <section key="programs" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900">{sections.programs?.title || 'Featured Programs'}</h2>
-                <Link to={`/c/${tenantSlug}/app/programs`} className="text-sm" style={{ color: primaryColor }}>View all programs</Link>
+                <Link to={`/c/${tenantSlug}/programs`} className="text-sm" style={{ color: primaryColor }}>View all programs</Link>
               </div>
               {featuredPrograms.length === 0 ? <p className="text-sm text-gray-500">No programs available yet.</p> : null}
               {featuredPrograms.map((item) => (
@@ -227,7 +227,7 @@ export function TenantMemberFeedPage() {
             <section key="groups" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900">{sections.groups?.title || 'Groups'}</h2>
-                <Link to={`/c/${tenantSlug}/app/groups`} className="text-sm" style={{ color: primaryColor }}>View all groups</Link>
+                <Link to={`/c/${tenantSlug}/groups`} className="text-sm" style={{ color: primaryColor }}>View all groups</Link>
               </div>
               {featuredGroups.length === 0 ? <p className="text-sm text-gray-500">No groups available.</p> : null}
               {featuredGroups.map((item) => (

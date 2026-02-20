@@ -118,7 +118,7 @@ export function MyCommunitiesPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => navigate(`/c/${t.slug}/app`)}
+                    onClick={() => navigate(`/c/${t.slug}`)}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90"
                   >
                     <LayoutDashboard className="w-4 h-4" />

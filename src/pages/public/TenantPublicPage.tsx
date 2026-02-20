@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SafeImage } from '../../components/ui/SafeImage';
 import { TenantMemberFeedPage } from '../tenant-member/TenantMemberFeedPage';
 
@@ -21,6 +22,12 @@ type TenantRow = {
 
 type PublicPreview = {
   tenant: TenantRow;
+  theme?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+  };
+  enabledSections?: string[];
   upcomingEvents: Array<{
     _id: string;
     title: string;
@@ -54,6 +61,7 @@ export function TenantPublicPage() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { user } = useAuth();
   const { tenant: contextTenant, membership, loading: tenantLoading } = useTenant();
+  const { updateTheme } = useTheme();
   const [preview, setPreview] = useState<PublicPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(true);
 
@@ -71,6 +79,17 @@ export function TenantPublicPage() {
     };
     void load();
   }, [tenantSlug]);
+
+  useEffect(() => {
+    if (!preview?.tenant) return;
+    const theme = preview.theme;
+    const logo = theme?.logoUrl || preview.tenant.logoUrl;
+    updateTheme({
+      ...(theme?.primaryColor && { primaryColor: theme.primaryColor }),
+      ...(theme?.secondaryColor && { secondaryColor: theme.secondaryColor }),
+      ...(logo && { logo })
+    });
+  }, [preview, updateTheme]);
 
   const hasFullCommunityAccess = useMemo(() => {
     if (!membership) return false;

@@ -93,12 +93,13 @@ export function TenantProvider({ tenantSlug, children }: { tenantSlug: string; c
           registrationFieldsEnabled: boolean;
           enabledSections?: string[];
         };
-        theme?: { primaryColor?: string; secondaryColor?: string };
+        theme?: { primaryColor?: string; secondaryColor?: string; logoUrl?: string };
         license: TenantLicense | null;
         membership: Membership | null;
       }>(`/api/tenants/${tenantSlug}/context`);
 
       const logoUrl =
+        data.theme?.logoUrl?.trim() ||
         data.tenant.logoUrl?.trim() ||
         (data.tenant.logoFileId
           ? `${getApiBaseUrl()}/api/upload/logo/${data.tenant.logoFileId}`

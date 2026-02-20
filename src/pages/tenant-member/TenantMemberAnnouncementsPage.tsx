@@ -39,7 +39,7 @@ export function TenantMemberAnnouncementsPage() {
               )}
             </div>
             <p className="text-sm text-gray-500 mb-3">
-              {new Date(a.createdAt).toLocaleDateString(undefined, {
+              {new Date(a.createdAt).toLocaleString(undefined, {
                 dateStyle: 'medium',
                 timeStyle: 'short'
               })}

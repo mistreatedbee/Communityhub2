@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 
 export function PricingPage() {
@@ -28,6 +29,12 @@ export function PricingPage() {
           >
             <Button className="w-full">Contact Sales</Button>
           </a>
+          <p className="mt-4 text-sm text-gray-500">
+            Already have a license?{' '}
+            <Link to="/enter-license" className="font-medium text-[var(--color-primary)] hover:underline">
+              Enter license key
+            </Link>
+          </p>
         </div>
       </div>
     </div>

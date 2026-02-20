@@ -44,16 +44,6 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Files</h3>
-            <ul className="space-y-3">
-              <li><span className="text-gray-500 text-sm">Support</span></li>
-              <li><span className="text-gray-500 text-sm">Privacy Policy</span></li>
-              <li><span className="text-gray-500 text-sm">Terms of Service</span></li>
-              <li><span className="text-gray-500 text-sm">Help Center</span></li>
-            </ul>
-          </div>
-
-          <div>
             <h3 className="font-semibold text-gray-900 mb-4">Contact Us</h3>
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-sm text-gray-500">

@@ -16,7 +16,7 @@ export function HomePage() {
 
   useEffect(() => {
     if (!user && hasLicenseSession()) {
-      navigate('/setup-community', { replace: true });
+      navigate('/signup', { replace: true });
     }
   }, [user, navigate]);
 

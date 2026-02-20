@@ -50,10 +50,11 @@ export function LoginPage() {
       }
 
       if (platformRole === 'SUPER_ADMIN') {
+        const target = redirectFrom === '/super-admin' ? redirectFrom : '/super-admin';
         if (import.meta.env.DEV) {
-          console.debug('[AuthRedirect] decision:super-admin', { target: '/super-admin' });
+          console.debug('[AuthRedirect] decision:super-admin', { target });
         }
-        navigate('/super-admin', { replace: true });
+        navigate(target, { replace: true });
         return;
       }
 
@@ -61,10 +62,11 @@ export function LoginPage() {
       const uniqueTenantIds = new Set(eligibleMemberships.map((m) => m.tenantId));
 
       if (uniqueTenantIds.size > 1) {
+        const target = redirectFrom === '/my-communities' ? redirectFrom : '/my-communities';
         if (import.meta.env.DEV) {
-          console.debug('[AuthRedirect] decision:multi-tenant', { target: '/my-communities' });
+          console.debug('[AuthRedirect] decision:multi-tenant', { target });
         }
-        navigate('/my-communities', { replace: true });
+        navigate(target, { replace: true });
         return;
       }
 
@@ -77,11 +79,19 @@ export function LoginPage() {
       try {
         const tenant = await apiClient<{ slug: string }>(`/api/tenants/id/${primary.tenantId}`);
         if (cancelled) return;
-        const target = getDefaultTenantRoute(tenant.slug, primary);
+        const defaultTarget = getDefaultTenantRoute(tenant.slug, primary);
+        const tenantBase = `/c/${tenant.slug}`;
+        const target =
+          typeof redirectFrom === 'string' &&
+          (redirectFrom === tenantBase || redirectFrom.startsWith(`${tenantBase}/`))
+            ? redirectFrom
+            : defaultTarget;
         if (import.meta.env.DEV) {
           console.debug('[AuthRedirect] decision:tenant', {
             roleChosen: primary.role,
             membershipStatus: primary.status,
+            defaultTarget,
+            redirectFrom,
             target
           });
         }

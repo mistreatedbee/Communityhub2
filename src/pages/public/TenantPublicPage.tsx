@@ -1,14 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Calendar, Megaphone, Search } from 'lucide-react';
+import { Megaphone, Search } from 'lucide-react';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTenant } from '../../contexts/TenantContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { SafeImage } from '../../components/ui/SafeImage';
 import { TenantMemberFeedPage } from '../tenant-member/TenantMemberFeedPage';
+import { MemberPageContainer, CommunityHero, Section, SectionTitle } from '../../components/member';
+import { Button } from '../../components/ui/Button';
 
 type TenantRow = {
   id: string;
@@ -118,101 +119,87 @@ export function TenantPublicPage() {
 
   if (hasFullCommunityAccess) {
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <h1 className="text-xl font-semibold text-gray-900">Community Home</h1>
+      <MemberPageContainer>
         <TenantMemberFeedPage />
-      </div>
+      </MemberPageContainer>
     );
   }
 
+  const description =
+    tenant.description?.trim() ||
+    'Public community profile. Join to participate and access the full community landing page.';
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 font-semibold overflow-hidden">
-            {tenant.logoUrl ? (
-              <SafeImage src={tenant.logoUrl} alt={tenant.name} fallbackSrc="/logo.png" className="w-full h-full object-cover" />
-            ) : tenant.name.charAt(0)}
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{tenant.name}</h1>
-            <p className="text-sm text-gray-500">{tenant.category ?? 'Community'} | {tenant.location ?? 'Global'}</p>
-          </div>
-        </div>
-        <p className="text-sm text-gray-600 mb-6">
-          {tenant.description?.trim() || 'Public community profile. Join to participate and access the full community landing page.'}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {user ? (
-            <Link
-              to={`/c/${tenant.slug}/join`}
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90"
-            >
-              Join community
-            </Link>
-          ) : (
-            <>
-              <Link
-                to={`/c/${tenant.slug}/join`}
-                className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--color-primary)] text-white text-sm font-medium hover:opacity-90"
-              >
-                Join community
-              </Link>
-              <Link
-                to="/login"
-                state={{ from: `/c/${tenant.slug}` }}
-                className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Log in
-              </Link>
-            </>
-          )}
-          <Link to="/communities" className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Back to directory
+    <MemberPageContainer>
+      <CommunityHero
+        communityName={tenant.name}
+        logoUrl={tenant.logoUrl}
+        headline={tenant.name}
+        subheadline={`${tenant.category ?? 'Community'}${tenant.location ? ` · ${tenant.location}` : ''}`}
+        description={description}
+        primaryColor="var(--color-primary)"
+      />
+      <div className="flex flex-wrap gap-3 mb-10">
+        {user ? (
+          <Link to={`/c/${tenant.slug}/join`}>
+            <Button>Join community</Button>
           </Link>
-        </div>
+        ) : (
+          <>
+            <Link to={`/c/${tenant.slug}/join`}>
+              <Button>Join community</Button>
+            </Link>
+            <Link to="/login" state={{ from: `/c/${tenant.slug}` }}>
+              <Button variant="outline">Log in</Button>
+            </Link>
+          </>
+        )}
+        <Link to="/communities">
+          <Button variant="outline">Back to directory</Button>
+        </Link>
       </div>
 
       {preview && preview.upcomingEvents.length > 0 && (
-        <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Upcoming events
-          </h2>
-          <ul className="space-y-3">
+        <Section>
+          <SectionTitle
+            title="Upcoming events"
+          />
+          <ul className="space-y-3 rounded-xl bg-gray-50/80 px-5 py-4 sm:px-6 sm:py-5">
             {preview.upcomingEvents.map((e) => (
-              <li key={e._id} className="flex justify-between gap-2 py-2 border-b border-gray-100 last:border-0">
-                <div>
-                  <p className="font-medium text-gray-900">{e.title}</p>
-                  <p className="text-sm text-gray-500">
-                    {new Date(e.startsAt).toLocaleString()}
-                    {e.location ? ` | ${e.location}` : ''}
-                    {e.isOnline && e.meetingLink ? ' | Online' : ''}
-                  </p>
-                </div>
+              <li key={e._id} className="py-2 border-b border-gray-100 last:border-0 last:pb-0">
+                <p className="font-medium text-gray-900">{e.title}</p>
+                <p className="text-sm text-gray-500">
+                  {new Date(e.startsAt).toLocaleString()}
+                  {e.location ? ` · ${e.location}` : ''}
+                  {e.isOnline && e.meetingLink ? ' · Online' : ''}
+                </p>
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       )}
 
       {preview && preview.recentAnnouncements.length > 0 && (
-        <section className="bg-white border border-gray-200 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Megaphone className="w-5 h-5" />
+        <Section>
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl mb-4 flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-gray-500" />
             Recent announcements
           </h2>
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {preview.recentAnnouncements.map((a) => (
-              <li key={a._id} className="py-2 border-b border-gray-100 last:border-0">
+              <li key={a._id} className="rounded-xl bg-gray-50/80 px-5 py-4 sm:px-6 sm:py-5">
                 <p className="font-medium text-gray-900">{a.title}</p>
-                {a.isPinned && <span className="text-xs text-amber-700">Pinned</span>}
-                <p className="text-sm text-gray-600 mt-0.5">{a.content}{a.content.length >= 200 ? '...' : ''}</p>
+                {a.isPinned && (
+                  <span className="text-xs font-medium text-amber-700 ml-2">Pinned</span>
+                )}
+                <p className="text-sm text-gray-600 mt-0.5">
+                  {a.content.length >= 200 ? `${a.content.slice(0, 200)}...` : a.content}
+                </p>
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       )}
-    </div>
+    </MemberPageContainer>
   );
 }

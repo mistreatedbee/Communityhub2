@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesGet } from '../../lib/tenantFeatures';
+import { MemberPageContainer, PageHeader, ContentCard } from '../../components/member';
 
 type Announcement = { _id: string; title: string; content: string; createdAt: string; isPinned: boolean };
 
@@ -18,15 +19,37 @@ export function TenantMemberAnnouncementsPage() {
   }, [tenant?.id]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
-      {items.map((a) => (
-        <div key={a._id} className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="font-semibold text-gray-900">{a.title}</p>
-          {a.isPinned ? <p className="text-xs text-amber-700">Pinned</p> : null}
-          <p className="text-sm text-gray-600">{a.content}</p>
-        </div>
-      ))}
-    </div>
+    <MemberPageContainer>
+      <PageHeader
+        title="Announcements"
+        subtitle="Latest updates and news from your community."
+      />
+      <div className="space-y-6">
+        {items.length === 0 && (
+          <p className="text-gray-500">No announcements yet.</p>
+        )}
+        {items.map((a) => (
+          <ContentCard key={a._id} accentLeft={a.isPinned}>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h2 className="text-xl font-semibold text-gray-900">{a.title}</h2>
+              {a.isPinned && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                  Pinned
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mb-3">
+              {new Date(a.createdAt).toLocaleDateString(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+              })}
+            </p>
+            <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+              {a.content}
+            </div>
+          </ContentCard>
+        ))}
+      </div>
+    </MemberPageContainer>
   );
 }

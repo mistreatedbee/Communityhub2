@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Card } from '../../components/ui/Card';
 import { useToast } from '../../components/ui/Toast';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesGet, tenantFeaturesPut } from '../../lib/tenantFeatures';
+import { MemberPageContainer, PageHeader, Section } from '../../components/member';
+import { Spinner } from '../../components/ui/Spinner';
 
 type MemberProfileResponse = {
   membershipStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'BANNED';
@@ -48,23 +49,55 @@ export function TenantMemberProfilePage() {
   };
 
   if (!profile) {
-    return <p className="text-sm text-gray-500">Loading profile...</p>;
+    return (
+      <MemberPageContainer>
+        <div className="flex justify-center py-12">
+          <Spinner size="lg" />
+        </div>
+      </MemberPageContainer>
+    );
   }
 
   return (
-    <Card className="p-6 space-y-4 max-w-xl">
-      <p className="text-sm text-gray-600">Membership status: {profile.membershipStatus}</p>
-      <Input
-        label="Full Name"
-        value={profile.profile.fullName || ''}
-        onChange={(e) => setProfile({ ...profile, profile: { ...profile.profile, fullName: e.target.value } })}
+    <MemberPageContainer narrow>
+      <PageHeader
+        title="My profile"
+        subtitle="Manage your community profile and contact details."
       />
-      <Input
-        label="Phone"
-        value={profile.profile.phone || ''}
-        onChange={(e) => setProfile({ ...profile, profile: { ...profile.profile, phone: e.target.value } })}
-      />
-      <Button onClick={() => void save()} isLoading={loading}>Save Profile</Button>
-    </Card>
+      <Section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Membership</h2>
+        <p className="text-sm text-gray-600">
+          Your status: <span className="font-medium text-gray-900">{profile.membershipStatus}</span>
+        </p>
+      </Section>
+      <Section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal details</h2>
+        <div className="space-y-4 max-w-md">
+          <Input
+            label="Full name"
+            value={profile.profile.fullName || ''}
+            onChange={(e) =>
+              setProfile({
+                ...profile,
+                profile: { ...profile.profile, fullName: e.target.value }
+              })
+            }
+          />
+          <Input
+            label="Phone"
+            value={profile.profile.phone || ''}
+            onChange={(e) =>
+              setProfile({
+                ...profile,
+                profile: { ...profile.profile, phone: e.target.value }
+              })
+            }
+          />
+          <Button onClick={() => void save()} isLoading={loading}>
+            Save profile
+          </Button>
+        </div>
+      </Section>
+    </MemberPageContainer>
   );
 }

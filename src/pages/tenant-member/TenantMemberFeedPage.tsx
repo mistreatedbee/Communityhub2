@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Button } from '../../components/ui/Button';
 import { useTenant } from '../../contexts/TenantContext';
 import { tenantFeaturesGet } from '../../lib/tenantFeatures';
 import { SafeImage } from '../../components/ui/SafeImage';
+import { CommunityHero, Section, SectionTitle, ContentCard } from '../../components/member';
 
 type Announcement = { _id: string; title: string; content: string; createdAt: string; isPinned: boolean };
 type PostRow = { _id: string; title: string; content: string; publishedAt: string };
@@ -111,187 +111,235 @@ export function TenantMemberFeedPage() {
   const isExternalCta = /^https?:\/\//i.test(ctaLink);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-0">
       {order.map((sectionKey) => {
         if (sectionKey === 'hero' && sections.hero?.enabled !== false) {
-          const bg = sections.hero?.heroImageUrl;
           return (
-            <section
+            <CommunityHero
               key="hero"
-              className="rounded-2xl border border-gray-200 overflow-hidden bg-cover bg-center"
-              style={{ backgroundImage: bg ? `url(${bg})` : undefined }}
-            >
-              <div className="p-8 md:p-12" style={{ background: sections.hero?.overlayColor || 'rgba(15,23,42,0.35)' }}>
-                {sections.hero?.heroLogoUrl ? (
-                  <SafeImage src={sections.hero.heroLogoUrl} alt={tenant?.name || 'Community'} fallbackSrc="/logo.png" className="h-12 w-auto mb-4" />
-                ) : null}
-                <h1 className="text-3xl md:text-4xl font-bold text-white">{sections.hero?.headline || `Welcome to ${tenant?.name}`}</h1>
-                <p className="text-white/90 mt-2 max-w-2xl">{sections.hero?.subheadline || 'Discover everything happening in your community.'}</p>
-                <div className="mt-5">
-                  {isExternalCta ? (
-                    <a href={ctaLink} target="_blank" rel="noreferrer">
-                      <Button style={{ backgroundColor: primaryColor, borderColor: primaryColor }} className="text-white">
-                        {sections.hero?.ctaLabel || 'Explore'}
-                      </Button>
-                    </a>
-                  ) : (
-                    <Link to={internalCtaPath}>
-                      <Button style={{ backgroundColor: primaryColor, borderColor: primaryColor }} className="text-white">
-                        {sections.hero?.ctaLabel || 'Explore'}
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </section>
+              communityName={tenant?.name || 'Community'}
+              logoUrl={sections.hero?.heroLogoUrl || tenant?.logo_url}
+              headline={sections.hero?.headline}
+              subheadline={sections.hero?.subheadline}
+              ctaLabel={sections.hero?.ctaLabel || 'Explore'}
+              ctaHref={isExternalCta ? undefined : internalCtaPath}
+              ctaExternal={isExternalCta}
+              primaryColor={primaryColor}
+              backgroundImageUrl={sections.hero?.heroImageUrl}
+              overlayColor={sections.hero?.overlayColor || 'rgba(15,23,42,0.4)'}
+            />
           );
         }
 
         if (sectionKey === 'vision' && sections.vision?.enabled !== false) {
           return (
-            <section key="vision" className="bg-white border border-gray-200 rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">{sections.vision?.title || 'Vision, Strategy, and Objectives'}</h2>
-              <div className="text-sm text-gray-700 whitespace-pre-line">{sections.vision?.content || ''}</div>
-            </section>
+            <Section key="vision">
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl mb-4">
+                {sections.vision?.title || 'Vision, Strategy, and Objectives'}
+              </h2>
+              <div className="rounded-xl bg-gray-50/80 px-5 py-4 sm:px-6 sm:py-5 text-gray-700 leading-relaxed whitespace-pre-line">
+                {sections.vision?.content || ''}
+              </div>
+            </Section>
           );
         }
 
         if (sectionKey === 'announcements' && sections.announcements?.enabled !== false) {
           return (
-            <section key="announcements" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">{sections.announcements?.title || 'Pinned Updates'}</h2>
-                <Link to={`/c/${tenantSlug}/announcements`} className="text-sm" style={{ color: primaryColor }}>View all</Link>
+            <Section key="announcements">
+              <SectionTitle
+                title={sections.announcements?.title || "What's new"}
+                viewAllHref={`/c/${tenantSlug}/announcements`}
+                viewAllLabel="View all"
+              />
+              {pinnedAnnouncements.length === 0 && posts.length === 0 ? (
+                <p className="text-gray-500">No announcements yet.</p>
+              ) : null}
+              <div className="space-y-4">
+                {pinnedAnnouncements.map((item) => (
+                  <ContentCard key={item._id} accentLeft={item.isPinned}>
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="font-semibold text-gray-900">{item.title}</span>
+                      {item.isPinned && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800">Pinned</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2">{item.content}</p>
+                  </ContentCard>
+                ))}
+                {posts.slice(0, 2).map((item) => (
+                  <ContentCard key={item._id}>
+                    <span className="font-semibold text-gray-900">{item.title}</span>
+                    <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{item.content}</p>
+                  </ContentCard>
+                ))}
               </div>
-              {pinnedAnnouncements.length === 0 ? <p className="text-sm text-gray-500">No announcements yet.</p> : null}
-              {pinnedAnnouncements.map((item) => (
-                <div key={item._id} className="border border-gray-100 rounded-lg p-3">
-                  <p className="font-medium text-gray-900">{item.title}</p>
-                  <p className="text-sm text-gray-600">{item.content}</p>
-                </div>
-              ))}
-              {posts.slice(0, 2).map((item) => (
-                <div key={item._id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
-                  <p className="font-medium text-gray-900">{item.title}</p>
-                  <p className="text-sm text-gray-600">{item.content}</p>
-                </div>
-              ))}
-            </section>
+            </Section>
           );
         }
 
         if (sectionKey === 'events' && sections.events?.enabled !== false) {
           return (
-            <section key="events" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">{sections.events?.title || 'Upcoming Events'}</h2>
-                <Link to={`/c/${tenantSlug}/events`} className="text-sm" style={{ color: primaryColor }}>View all events</Link>
+            <Section key="events">
+              <SectionTitle
+                title={sections.events?.title || 'Upcoming events'}
+                viewAllHref={`/c/${tenantSlug}/events`}
+                viewAllLabel="View all events"
+              />
+              {upcomingEvents.length === 0 ? <p className="text-gray-500">No upcoming events.</p> : null}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {upcomingEvents.map((item) => (
+                  <Link
+                    key={item._id}
+                    to={`/c/${tenantSlug}/events`}
+                    className="group rounded-xl bg-gray-50/80 overflow-hidden transition-all duration-200 hover:bg-gray-100/90 block text-left"
+                  >
+                    {item.thumbnailUrl ? (
+                      <SafeImage
+                        src={item.thumbnailUrl}
+                        alt={item.title}
+                        fallbackSrc="/image-fallback.svg"
+                        className="w-full h-32 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-24 bg-gray-200 flex items-center justify-center text-gray-400 text-sm">Event</div>
+                    )}
+                    <div className="p-4">
+                      <p className="font-semibold text-gray-900 group-hover:text-[var(--color-primary)] transition-colors">{item.title}</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{new Date(item.startsAt).toLocaleString()}</p>
+                      {item.location ? <p className="text-xs text-gray-500 mt-0.5">{item.location}</p> : null}
+                    </div>
+                  </Link>
+                ))}
               </div>
-              {upcomingEvents.length === 0 ? <p className="text-sm text-gray-500">No upcoming events.</p> : null}
-              {upcomingEvents.map((item) => (
-                <div key={item._id} className="border border-gray-100 rounded-lg p-3 flex gap-3">
-                  {item.thumbnailUrl ? (
-                    <SafeImage src={item.thumbnailUrl} alt={item.title} fallbackSrc="/image-fallback.svg" className="w-14 h-14 rounded-lg object-cover shrink-0" />
-                  ) : null}
-                  <div>
-                    <p className="font-medium text-gray-900">{item.title}</p>
-                    <p className="text-sm text-gray-600">{new Date(item.startsAt).toLocaleString()}</p>
-                    {item.location ? <p className="text-xs text-gray-500">{item.location}</p> : null}
-                  </div>
-                </div>
-              ))}
-            </section>
+            </Section>
           );
         }
 
         if (sectionKey === 'programs' && sections.programs?.enabled !== false) {
           return (
-            <section key="programs" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">{sections.programs?.title || 'Featured Programs'}</h2>
-                <Link to={`/c/${tenantSlug}/programs`} className="text-sm" style={{ color: primaryColor }}>View all programs</Link>
+            <Section key="programs">
+              <SectionTitle
+                title={sections.programs?.title || 'Featured programs'}
+                viewAllHref={`/c/${tenantSlug}/programs`}
+                viewAllLabel="View all programs"
+              />
+              {featuredPrograms.length === 0 ? <p className="text-gray-500">No programs available yet.</p> : null}
+              <div className="space-y-4">
+                {featuredPrograms.map((item) => (
+                  <ContentCard key={item._id}>
+                    <p className="font-semibold text-gray-900">{item.title}</p>
+                    <p className="text-sm text-gray-600 mt-0.5">{item.description || ''}</p>
+                  </ContentCard>
+                ))}
               </div>
-              {featuredPrograms.length === 0 ? <p className="text-sm text-gray-500">No programs available yet.</p> : null}
-              {featuredPrograms.map((item) => (
-                <div key={item._id} className="border border-gray-100 rounded-lg p-3">
-                  <p className="font-medium text-gray-900">{item.title}</p>
-                  <p className="text-sm text-gray-600">{item.description || ''}</p>
-                </div>
-              ))}
-            </section>
+            </Section>
           );
         }
 
         if (sectionKey === 'groups' && sections.groups?.enabled !== false) {
           return (
-            <section key="groups" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">{sections.groups?.title || 'Groups'}</h2>
-                <Link to={`/c/${tenantSlug}/groups`} className="text-sm" style={{ color: primaryColor }}>View all groups</Link>
+            <Section key="groups">
+              <SectionTitle
+                title={sections.groups?.title || 'Groups'}
+                viewAllHref={`/c/${tenantSlug}/groups`}
+                viewAllLabel="View all groups"
+              />
+              {featuredGroups.length === 0 ? <p className="text-gray-500">No groups available.</p> : null}
+              <div className="space-y-4">
+                {featuredGroups.map((item) => (
+                  <ContentCard key={item._id}>
+                    <p className="font-semibold text-gray-900">{item.name}</p>
+                    <p className="text-sm text-gray-600 mt-0.5">{item.description || ''}</p>
+                  </ContentCard>
+                ))}
               </div>
-              {featuredGroups.length === 0 ? <p className="text-sm text-gray-500">No groups available.</p> : null}
-              {featuredGroups.map((item) => (
-                <div key={item._id} className="border border-gray-100 rounded-lg p-3">
-                  <p className="font-medium text-gray-900">{item.name}</p>
-                  <p className="text-sm text-gray-600">{item.description || ''}</p>
-                </div>
-              ))}
-            </section>
+            </Section>
           );
         }
 
         if (sectionKey === 'gallery' && sections.gallery?.enabled) {
           return (
-            <section key="gallery" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
-              <h2 className="text-xl font-semibold text-gray-900">Gallery</h2>
-              {galleryImages.length === 0 ? <p className="text-sm text-gray-500">No gallery images yet.</p> : null}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Section key="gallery">
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl mb-4">Gallery</h2>
+              {galleryImages.length === 0 ? <p className="text-gray-500">No gallery images yet.</p> : null}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {galleryImages.map((item, idx) => (
-                  <div key={`${item.url}-${idx}`} className="space-y-1">
-                    <SafeImage src={item.url} alt={item.caption || `gallery-${idx + 1}`} fallbackSrc="/image-fallback.svg" className="w-full h-28 object-cover rounded-lg" />
-                    {item.caption ? <p className="text-xs text-gray-500">{item.caption}</p> : null}
+                  <div key={`${item.url}-${idx}`} className="rounded-xl overflow-hidden bg-gray-50">
+                    <SafeImage
+                      src={item.url}
+                      alt={item.caption || `gallery-${idx + 1}`}
+                      fallbackSrc="/image-fallback.svg"
+                      className="w-full h-36 object-cover"
+                    />
+                    {item.caption ? <p className="p-2 text-xs text-gray-500">{item.caption}</p> : null}
                   </div>
                 ))}
               </div>
-            </section>
+            </Section>
           );
         }
 
         if (sectionKey === 'calendar' && sections.calendar?.enabled) {
           return (
-            <section key="calendar" className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
-              <h2 className="text-xl font-semibold text-gray-900">{sections.calendar?.title || 'Calendar'}</h2>
-              <ul className="space-y-2">
+            <Section key="calendar">
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl mb-4">
+                {sections.calendar?.title || 'Calendar'}
+              </h2>
+              <ul className="space-y-2 rounded-xl bg-gray-50/80 px-5 py-4 sm:px-6 sm:py-5">
                 {upcomingEvents.slice(0, 6).map((item) => (
-                  <li key={item._id} className="text-sm text-gray-700">
-                    {new Date(item.startsAt).toLocaleDateString()} - {item.title}
+                  <li key={item._id} className="text-sm text-gray-700 flex gap-2">
+                    <span className="text-gray-500 shrink-0">{new Date(item.startsAt).toLocaleDateString()}</span>
+                    <span>{item.title}</span>
                   </li>
                 ))}
                 {upcomingEvents.length === 0 ? <li className="text-sm text-gray-500">No upcoming schedule.</li> : null}
               </ul>
-            </section>
+            </Section>
           );
         }
         return null;
       })}
 
-      <section className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Resource Preview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <Section>
+        <SectionTitle
+          title="Featured resources"
+          viewAllHref={`/c/${tenantSlug}/resources`}
+          viewAllLabel="View all"
+        />
+        {resources.length === 0 ? <p className="text-gray-500">No resources yet.</p> : null}
+        <div className="grid gap-4 sm:grid-cols-2">
           {resources.slice(0, 4).map((item) => (
-            <div key={item._id} className="border border-gray-100 rounded-lg p-3 flex gap-3">
-              {item.thumbnailUrl ? (
-                <SafeImage src={item.thumbnailUrl} alt={item.title} fallbackSrc="/image-fallback.svg" className="w-12 h-12 object-cover rounded shrink-0" />
-              ) : null}
-              <div>
-                <p className="font-medium text-gray-900">{item.title}</p>
-                <p className="text-sm text-gray-600">{item.description || ''}</p>
-                {item.url ? <a href={item.url} target="_blank" rel="noreferrer" className="text-xs" style={{ color: primaryColor }}>Open</a> : null}
+            <ContentCard key={item._id}>
+              <div className="flex gap-3">
+                {item.thumbnailUrl ? (
+                  <SafeImage
+                    src={item.thumbnailUrl}
+                    alt={item.title}
+                    fallbackSrc="/image-fallback.svg"
+                    className="w-12 h-12 rounded-lg object-cover shrink-0"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900">{item.title}</p>
+                  <p className="text-sm text-gray-600 truncate">{item.description || ''}</p>
+                  {item.url ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium mt-1 inline-block transition-colors hover:opacity-90"
+                      style={{ color: 'var(--color-primary)' }}
+                    >
+                      Open
+                    </a>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            </ContentCard>
           ))}
         </div>
-      </section>
+      </Section>
     </div>
   );
 }

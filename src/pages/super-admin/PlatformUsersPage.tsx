@@ -162,8 +162,8 @@ export function PlatformUsersPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Platform Users</h1>
-        <p className="text-gray-500">All registered users.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Platform Members</h1>
+        <p className="text-gray-500">All registered members.</p>
       </div>
 
       <Card>

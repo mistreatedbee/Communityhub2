@@ -24,7 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { NavItem } from '../../types';
 const MEMBER_SECTION_KEYS: Record<string, string> = {
   'Announcements': 'announcements',
-  'Resources': 'resources',
+  'Files': 'resources',
   'Groups': 'groups',
   'Events': 'events',
   'Programs': 'programs'
@@ -48,7 +48,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
   const allMemberItems: NavItem[] = [
     { label: 'Home', href: tenantBase, icon: LayoutDashboard },
     { label: 'Announcements', href: `${tenantBase}/announcements`, icon: Megaphone },
-    { label: 'Resources', href: `${tenantBase}/resources`, icon: FileText },
+    { label: 'Files', href: `${tenantBase}/resources`, icon: FileText },
     { label: 'Groups', href: `${tenantBase}/groups`, icon: Users },
     { label: 'Events', href: `${tenantBase}/events`, icon: Calendar },
     { label: 'Programs', href: `${tenantBase}/programs`, icon: FileText },
@@ -96,7 +96,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
       icon: Megaphone
     },
     {
-      label: 'Resources',
+      label: 'Files',
       href: `${tenantBase}/admin/resources`,
       icon: FileText
     },
@@ -154,7 +154,7 @@ export function Sidebar({ isCollapsed, toggleCollapse, variant, tenantSlug = '',
     icon: Building2
   },
   {
-    label: 'Platform Users',
+    label: 'Platform Members',
     href: '/super-admin/users',
     icon: Users
   },

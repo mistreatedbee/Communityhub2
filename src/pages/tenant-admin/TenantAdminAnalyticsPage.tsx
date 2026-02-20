@@ -20,7 +20,7 @@ const metricConfig: { key: keyof DashboardStats; label: string; icon: React.Elem
   { key: 'groups', label: 'Groups', icon: Users },
   { key: 'events', label: 'Events', icon: Calendar },
   { key: 'programs', label: 'Programs', icon: BookOpen },
-  { key: 'resources', label: 'Resources', icon: FolderOpen }
+  { key: 'resources', label: 'Files', icon: FolderOpen }
 ];
 
 export function TenantAdminAnalyticsPage() {

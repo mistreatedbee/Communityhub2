@@ -53,7 +53,7 @@ export function TenantAdminDashboardPage() {
           ['Announcements', stats?.announcements || 0],
           ['Posts', stats?.posts || 0],
           ['Upcoming events', stats?.events || 0],
-          ['Resources', stats?.resources || 0]
+          ['Files', stats?.resources || 0]
         ].map(([label, value]) => (
           <Card key={String(label)}>
             <CardHeader className="text-sm text-gray-500">{String(label)}</CardHeader>

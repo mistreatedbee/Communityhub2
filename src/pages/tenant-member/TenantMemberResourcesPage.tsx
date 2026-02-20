@@ -19,7 +19,7 @@ export function TenantMemberResourcesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Files</h1>
       {items.map((item) => (
         <div key={item._id} className="bg-white border border-gray-200 rounded-xl p-4 flex gap-3">
           {item.thumbnailUrl ? (

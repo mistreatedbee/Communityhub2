@@ -68,11 +68,11 @@ export function TenantAdminProgramsPage() {
     if (!tenant?.id || !programId || !moduleTitle.trim()) return;
     try {
       await tenantFeaturesPost(tenant.id, '/programs/modules', { programId, title: moduleTitle, order: 0 });
-      addToast('Module created successfully.', 'success');
+      addToast('Section created successfully.', 'success');
       setModuleTitle('');
       await load();
     } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Failed to create module', 'error');
+      addToast(e instanceof Error ? e.message : 'Failed to create section', 'error');
     }
   };
 
@@ -105,8 +105,8 @@ export function TenantAdminProgramsPage() {
             </option>
           ))}
         </select>
-        <Input label="Module title" value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} />
-        <Button onClick={() => void createModule()}>Add module</Button>
+        <Input label="Section title" value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} />
+        <Button onClick={() => void createModule()}>Add section</Button>
       </div>
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <label className="block text-sm font-medium text-gray-700">Assign to group</label>
@@ -133,7 +133,7 @@ export function TenantAdminProgramsPage() {
               <p className="font-semibold text-gray-900">{p.title}</p>
               <p className="text-sm text-gray-600">{p.description}</p>
               <p className="text-xs text-gray-500 mt-1">
-                {p.status || 'ACTIVE'} · {moduleCount} module(s) · {assignedGroupCount} group(s)
+                {p.status || 'ACTIVE'} · {moduleCount} section(s) · {assignedGroupCount} group(s)
               </p>
             </Link>
           );

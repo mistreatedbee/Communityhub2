@@ -8,7 +8,7 @@ import { tenantFeaturesGet, tenantFeaturesPut } from '../../lib/tenantFeatures';
 
 const SECTION_OPTIONS = [
   { key: 'announcements', label: 'Announcements' },
-  { key: 'resources', label: 'Resources' },
+  { key: 'resources', label: 'Files' },
   { key: 'groups', label: 'Groups' },
   { key: 'events', label: 'Events' },
   { key: 'programs', label: 'Programs' }

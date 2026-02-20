@@ -20,6 +20,7 @@ type GroupMember = {
   role: string;
   createdAt: string;
 };
+type GroupResource = { _id: string; title: string; description?: string };
 
 export function TenantAdminGroupDetailPage() {
   const { tenant } = useTenant();
@@ -28,6 +29,7 @@ export function TenantAdminGroupDetailPage() {
   const [data, setData] = useState<GroupDetailPayload | null>(null);
   const [allPrograms, setAllPrograms] = useState<Program[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [groupResources, setGroupResources] = useState<GroupResource[]>([]);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editIsPrivate, setEditIsPrivate] = useState(false);
@@ -37,14 +39,16 @@ export function TenantAdminGroupDetailPage() {
   const load = useCallback(async () => {
     if (!tenant?.id || !groupId) return;
     try {
-      const [detail, programsPayload, membersList] = await Promise.all([
+      const [detail, programsPayload, membersList, resourcesList] = await Promise.all([
         tenantFeaturesGet<GroupDetailPayload>(tenant.id, `/groups/${groupId}`),
         tenantFeaturesGet<{ programs: Program[] }>(tenant.id, '/programs'),
-        tenantFeaturesGet<GroupMember[]>(tenant.id, `/groups/${groupId}/members`).catch(() => [])
+        tenantFeaturesGet<GroupMember[]>(tenant.id, `/groups/${groupId}/members`).catch(() => []),
+        tenantFeaturesGet<GroupResource[]>(tenant.id, `/groups/${groupId}/resources`).catch(() => [])
       ]);
       setData(detail);
       setAllPrograms(programsPayload?.programs ?? []);
       setMembers(Array.isArray(membersList) ? membersList : []);
+      setGroupResources(Array.isArray(resourcesList) ? resourcesList : []);
       setEditName(detail.group.name);
       setEditDescription(detail.group.description || '');
       setEditIsPrivate(!!detail.group.isPrivate);
@@ -130,10 +134,27 @@ export function TenantAdminGroupDetailPage() {
           value={editDescription}
           onChange={(e) => setEditDescription(e.target.value)}
         />
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" checked={editIsPrivate} onChange={(e) => setEditIsPrivate(e.target.checked)} />
-          Invite-only (private within community)
-        </label>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Who can see this group?</p>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="radio"
+              name="privacy"
+              checked={!editIsPrivate}
+              onChange={() => setEditIsPrivate(false)}
+            />
+            Everyone in the community (public)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="radio"
+              name="privacy"
+              checked={editIsPrivate}
+              onChange={() => setEditIsPrivate(true)}
+            />
+            Only members of this group (members-only)
+          </label>
+        </div>
         <Button onClick={() => void saveGroup()} isLoading={saving}>
           Save changes
         </Button>
@@ -158,6 +179,26 @@ export function TenantAdminGroupDetailPage() {
           </ul>
         ) : (
           <p className="text-sm text-gray-500">No members yet. Members join from the member app.</p>
+        )}
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <h2 className="font-semibold text-gray-900">Files in this group</h2>
+        {groupResources.length > 0 ? (
+          <ul className="space-y-2">
+            {groupResources.map((r) => (
+              <li key={r._id}>
+                <Link
+                  to={`/c/${tenantSlug}/admin/resources/${r._id}`}
+                  className="text-[var(--color-primary)] hover:underline font-medium"
+                >
+                  {r.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500">No files in this group yet.</p>
         )}
       </div>
 

@@ -16,7 +16,7 @@ type ClaimResult = { tenant: { slug: string }; redirectSlug: string };
 
 const SECTION_OPTIONS: { key: string; label: string }[] = [
   { key: 'announcements', label: 'Announcements' },
-  { key: 'resources', label: 'Resources' },
+  { key: 'resources', label: 'Files' },
   { key: 'groups', label: 'Groups' },
   { key: 'events', label: 'Events' },
   { key: 'programs', label: 'Programs' }

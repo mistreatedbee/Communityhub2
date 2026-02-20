@@ -38,7 +38,7 @@ export function TenantAdminModuleDetailPage() {
       setEditTitle(detail.module.title);
       setEditDescription(detail.module.description || '');
     } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Failed to load module', 'error');
+      addToast(e instanceof Error ? e.message : 'Failed to load section', 'error');
     }
   }, [tenant?.id, programId, moduleId, addToast]);
 
@@ -54,10 +54,10 @@ export function TenantAdminModuleDetailPage() {
         title: editTitle,
         description: editDescription
       });
-      addToast('Module updated successfully.', 'success');
+      addToast('Section updated successfully.', 'success');
       await load();
     } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Failed to update module', 'error');
+      addToast(e instanceof Error ? e.message : 'Failed to update section', 'error');
     } finally {
       setSaving(false);
     }
@@ -69,11 +69,11 @@ export function TenantAdminModuleDetailPage() {
       await tenantFeaturesPost(tenant.id, `/programs/${programId}/modules/${moduleId}/resources`, {
         resourceId: addResourceId
       });
-      addToast('Resource added to module.', 'success');
+      addToast('File added to section.', 'success');
       setAddResourceId('');
       await load();
     } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Failed to add resource', 'error');
+      addToast(e instanceof Error ? e.message : 'Failed to add file', 'error');
     }
   };
 
@@ -84,7 +84,7 @@ export function TenantAdminModuleDetailPage() {
         tenant.id,
         `/programs/${programId}/modules/${moduleId}/resources/${resourceId}`
       );
-      addToast('Resource removed from module.', 'success');
+      addToast('File removed from section.', 'success');
       await load();
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to remove resource', 'error');
@@ -94,7 +94,7 @@ export function TenantAdminModuleDetailPage() {
   if (!data) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-gray-500">Loading module...</p>
+        <p className="text-sm text-gray-500">Loading section...</p>
       </div>
     );
   }
@@ -112,10 +112,10 @@ export function TenantAdminModuleDetailPage() {
           Back to Program
         </Link>
       </div>
-      <h1 className="text-2xl font-bold text-gray-900">Module: {data.module.title}</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Section: {data.module.title}</h1>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Edit module</h2>
+        <h2 className="font-semibold text-gray-900">Edit section</h2>
         <Input label="Name" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
         <Input
           label="Description"
@@ -128,7 +128,7 @@ export function TenantAdminModuleDetailPage() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Resources in this module</h2>
+        <h2 className="font-semibold text-gray-900">Files in this section</h2>
         {data.resources.length > 0 ? (
           <ul className="space-y-2">
             {data.resources.map((r) => (
@@ -146,7 +146,7 @@ export function TenantAdminModuleDetailPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-gray-500">No resources in this module yet.</p>
+          <p className="text-sm text-gray-500">No files in this section yet.</p>
         )}
         {availableResources.length > 0 && (
           <div className="flex gap-2 items-end pt-2">
@@ -163,7 +163,7 @@ export function TenantAdminModuleDetailPage() {
               ))}
             </select>
             <Button onClick={() => void addResource()} disabled={!addResourceId}>
-              Add resource to module
+              Add file to section
             </Button>
           </div>
         )}

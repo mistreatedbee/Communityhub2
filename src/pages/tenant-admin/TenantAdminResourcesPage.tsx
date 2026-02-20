@@ -92,7 +92,7 @@ export function TenantAdminResourcesPage() {
           url: linkUrl.trim()
         });
       }
-      addToast('Resource created successfully.', 'success');
+      addToast('File created successfully.', 'success');
       setTitle('');
       setDescription('');
       setLinkUrl('');
@@ -110,7 +110,7 @@ export function TenantAdminResourcesPage() {
     if (!tenant?.id) return;
     try {
       await tenantFeaturesDelete(tenant.id, `/resources/${id}`);
-      addToast('Resource deleted.', 'success');
+      addToast('File deleted.', 'success');
       await load();
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to delete resource', 'error');
@@ -140,7 +140,7 @@ export function TenantAdminResourcesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Files</h1>
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <Input label="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />

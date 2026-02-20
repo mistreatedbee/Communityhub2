@@ -15,6 +15,7 @@ export function TenantAdminGroupsPage() {
   const [items, setItems] = useState<GroupRow[]>([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const load = async () => {
     if (!tenant?.id) return;
@@ -32,10 +33,11 @@ export function TenantAdminGroupsPage() {
   const create = async () => {
     if (!tenant?.id || !name.trim()) return;
     try {
-      await tenantFeaturesPost(tenant.id, '/groups', { name, description, isPrivate: false });
+      await tenantFeaturesPost(tenant.id, '/groups', { name, description, isPrivate });
       addToast('Group created successfully.', 'success');
       setName('');
       setDescription('');
+      setIsPrivate(false);
       await load();
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to create group', 'error');
@@ -48,6 +50,17 @@ export function TenantAdminGroupsPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
         <Input label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Who can see this group?</p>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="radio" name="createPrivacy" checked={!isPrivate} onChange={() => setIsPrivate(false)} />
+            Everyone in the community (public)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="radio" name="createPrivacy" checked={isPrivate} onChange={() => setIsPrivate(true)} />
+            Only members of this group (members-only)
+          </label>
+        </div>
         <Button onClick={() => void create()}>Create group</Button>
       </div>
       <div className="space-y-3">
@@ -59,6 +72,9 @@ export function TenantAdminGroupsPage() {
           >
             <p className="font-semibold text-gray-900">{g.name}</p>
             <p className="text-sm text-gray-600">{g.description}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {g.isPrivate ? 'Only members of this group (members-only)' : 'Everyone in the community (public)'}
+            </p>
           </Link>
         ))}
       </div>

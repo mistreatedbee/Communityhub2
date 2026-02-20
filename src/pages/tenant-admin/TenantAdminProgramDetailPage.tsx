@@ -102,11 +102,11 @@ export function TenantAdminProgramDetailPage() {
         title: moduleTitle,
         order: (data?.modules?.length ?? 0)
       });
-      addToast('Module created successfully.', 'success');
+      addToast('Section created successfully.', 'success');
       setModuleTitle('');
       await load();
     } catch (e) {
-      addToast(e instanceof Error ? e.message : 'Failed to create module', 'error');
+      addToast(e instanceof Error ? e.message : 'Failed to create section', 'error');
     }
   };
 
@@ -197,7 +197,7 @@ export function TenantAdminProgramDetailPage() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Modules</h2>
+        <h2 className="font-semibold text-gray-900">Sections</h2>
         {data.modules.length > 0 && (
           <ul className="space-y-2">
             {data.modules.map((m) => (
@@ -214,14 +214,14 @@ export function TenantAdminProgramDetailPage() {
         )}
         <div className="flex gap-2 items-end">
           <Input
-            label="New module title"
+            label="New section title"
             value={moduleTitle}
             onChange={(e) => setModuleTitle(e.target.value)}
-            placeholder="Module name"
+            placeholder="Section name"
             className="flex-1"
           />
           <Button onClick={() => void createModule()} disabled={!moduleTitle.trim()}>
-            Add module
+            Add section
           </Button>
         </div>
       </div>

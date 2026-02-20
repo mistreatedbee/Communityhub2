@@ -112,7 +112,7 @@ export function TenantAdminResourceEditPage() {
         }
       }
       await tenantFeaturesPut(tenant.id, `/resources/${resourceId}`, payload);
-      addToast('Resource updated successfully.', 'success');
+      addToast('File updated successfully.', 'success');
       setReplacementFile(null);
       setSelectedFile(null);
       setSelectedThumbnail(null);
@@ -160,7 +160,7 @@ export function TenantAdminResourceEditPage() {
           to={`/c/${tenantSlug}/admin/resources`}
           className="text-sm font-medium text-[var(--color-primary)] hover:underline"
         >
-          Back to Resources
+          Back to Files
         </Link>
       </div>
       <h1 className="text-2xl font-bold text-gray-900">Edit resource</h1>

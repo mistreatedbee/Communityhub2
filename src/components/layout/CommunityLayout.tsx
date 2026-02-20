@@ -13,7 +13,7 @@ import { Search } from 'lucide-react';
 const SECTION_LABELS: Record<string, string> = {
   announcements: 'Announcements',
   events: 'Events',
-  resources: 'Resources',
+  resources: 'Files',
   groups: 'Groups',
   programs: 'Programs'
 };

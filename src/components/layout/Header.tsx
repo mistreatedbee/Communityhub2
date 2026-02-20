@@ -28,7 +28,7 @@ export function Header() {
         { label: 'Announcements', href: `/c/${tenantSlugInPath}/announcements` },
         { label: 'Events', href: `/c/${tenantSlugInPath}/events` },
         { label: 'Groups', href: `/c/${tenantSlugInPath}/groups` },
-        { label: 'Resources', href: `/c/${tenantSlugInPath}/resources` },
+        { label: 'Files', href: `/c/${tenantSlugInPath}/resources` },
         { label: 'Programs', href: `/c/${tenantSlugInPath}/programs` },
         { label: 'Back to Platform', href: '/' }
       ]

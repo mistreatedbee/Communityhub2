@@ -8,6 +8,8 @@ import {
   Image as ImageIcon,
   Download,
   Trash2,
+  Globe,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';

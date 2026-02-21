@@ -1,5 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Upload } from 'lucide-react';
+import {
+  ArrowUp,
+  ArrowDown,
+  Upload,
+  Save,
+  Eye,
+  EyeOff,
+  Palette,
+  Layout,
+  Image as ImageIcon,
+  Calendar,
+  Bell,
+  Users,
+  BookOpen,
+  Target,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
@@ -49,20 +66,20 @@ const FALLBACK: HomeSettings = {
       ctaLink: 'events',
       heroImageUrl: '',
       heroLogoUrl: '',
-      overlayColor: 'rgba(15,23,42,0.45)'
+      overlayColor: 'rgba(15,23,42,0.45)',
     },
     vision: {
       enabled: true,
       title: 'Vision, Strategy, and Objectives',
-      content: '- Build meaningful connections\n- Share knowledge\n- Grow community impact'
+      content: '- Build meaningful connections\n- Share knowledge\n- Grow community impact',
     },
     gallery: { enabled: false, images: [] },
     events: { enabled: true, title: 'Upcoming Events', showCount: 3 },
     programs: { enabled: true, title: 'Featured Programs', showCount: 3 },
     groups: { enabled: true, title: 'Featured Groups', showCount: 3, featuredGroupIds: [] },
     calendar: { enabled: false, title: 'Calendar' },
-    announcements: { enabled: true, title: 'Pinned Updates' }
-  }
+    announcements: { enabled: true, title: 'Pinned Updates' },
+  },
 };
 
 const SECTION_LABELS: Record<string, string> = {
@@ -73,12 +90,13 @@ const SECTION_LABELS: Record<string, string> = {
   programs: 'Programs',
   groups: 'Groups',
   gallery: 'Gallery',
-  calendar: 'Calendar'
+  calendar: 'Calendar',
 };
 
 export function TenantAdminHomeBuilderPage() {
   const { tenant } = useTenant();
   const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<HomeSettings>(FALLBACK);
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [saving, setSaving] = useState(false);
@@ -86,22 +104,25 @@ export function TenantAdminHomeBuilderPage() {
   useEffect(() => {
     const load = async () => {
       if (!tenant?.id) return;
+      setLoading(true);
       try {
         const [home, groupRows] = await Promise.all([
           tenantFeaturesGet<any>(tenant.id, '/home-settings'),
-          tenantFeaturesGet<GroupRow[]>(tenant.id, '/groups')
+          tenantFeaturesGet<GroupRow[]>(tenant.id, '/groups'),
         ]);
         setSettings({
           ...FALLBACK,
           ...home,
           sections: {
             ...FALLBACK.sections,
-            ...(home?.sections || {})
-          }
+            ...(home?.sections || {}),
+          },
         });
         setGroups(groupRows || []);
       } catch (e) {
         addToast(e instanceof Error ? e.message : 'Failed to load home settings', 'error');
+      } finally {
+        setLoading(false);
       }
     };
     void load();
@@ -127,7 +148,8 @@ export function TenantAdminHomeBuilderPage() {
       (file, index) =>
         new Promise<{ url: string; caption?: string; order: number }>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve({ url: String(reader.result || ''), caption: file.name, order: Date.now() + index });
+          reader.onload = () =>
+            resolve({ url: String(reader.result || ''), caption: file.name, order: Date.now() + index });
           reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
           reader.readAsDataURL(file);
         })
@@ -140,9 +162,9 @@ export function TenantAdminHomeBuilderPage() {
             ...prev.sections,
             gallery: {
               ...prev.sections.gallery,
-              images: [...prev.sections.gallery.images, ...images].sort((a, b) => a.order - b.order)
-            }
-          }
+              images: [...prev.sections.gallery.images, ...images].sort((a, b) => a.order - b.order),
+            },
+          },
         }));
       })
       .catch(() => addToast('Failed to upload one or more images', 'error'));
@@ -167,236 +189,596 @@ export function TenantAdminHomeBuilderPage() {
       const target = direction === 'up' ? index - 1 : index + 1;
       if (target < 0 || target >= next.length) return prev;
       [next[index], next[target]] = [next[target], next[index]];
-      return { ...prev, sections: { ...prev.sections, gallery: { ...prev.sections.gallery, images: next } } };
+      return {
+        ...prev,
+        sections: { ...prev.sections, gallery: { ...prev.sections.gallery, images: next } },
+      };
     });
   };
 
+  // Loading skeleton
+  if (loading) {
+    return (
+      <>
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, gray 1px, transparent 0)`,
+              backgroundSize: '32px 32px',
+            }}
+          />
+        </div>
+        <div className="space-y-6 relative animate-pulse">
+          <div className="flex justify-between">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-10 bg-gray-200 rounded w-24"></div>
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200">
+                <div className="h-5 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap justify-between gap-3 items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Home Page Builder</h1>
-          <p className="text-sm text-gray-600">Configure the tenant member landing page shown at /c/{tenant?.slug}.</p>
+    <>
+      {/* Animated background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, gray 1px, transparent 0)`,
+            backgroundSize: '32px 32px',
+          }}
+        />
+      </div>
+
+      <div className="space-y-8 relative">
+        {/* Header */}
+        <div className="flex flex-wrap justify-between gap-3 items-center">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <Layout className="w-6 h-6 text-[var(--color-primary)]" />
+              Home Page Builder
+            </h1>
+            <p className="text-sm text-gray-600">
+              Configure the tenant member landing page shown at /c/{tenant?.slug}.
+            </p>
+          </div>
+          <Button
+            onClick={() => void save()}
+            isLoading={saving}
+            leftIcon={<Save className="w-4 h-4" />}
+            className="shadow-sm hover:shadow-md transition-shadow"
+          >
+            Save & Publish
+          </Button>
         </div>
-        <Button onClick={() => void save()} isLoading={saving}>Save & Publish</Button>
-      </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Theme</h2>
-        <Input
-          label="Primary color"
-          value={settings.theme.primaryColor || ''}
-          onChange={(e) => setSettings((prev) => ({ ...prev, theme: { ...prev.theme, primaryColor: e.target.value } }))}
-          placeholder="#2563eb"
-        />
-        <Input
-          label="Secondary color"
-          value={settings.theme.secondaryColor || ''}
-          onChange={(e) => setSettings((prev) => ({ ...prev, theme: { ...prev.theme, secondaryColor: e.target.value } }))}
-          placeholder="#0ea5e9"
-        />
-        <Input
-          label="Logo URL (optional)"
-          value={settings.theme.logoUrl || ''}
-          onChange={(e) => setSettings((prev) => ({ ...prev, theme: { ...prev.theme, logoUrl: e.target.value } }))}
-          placeholder="https://..."
-        />
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Section order</h2>
-        <ul className="space-y-2">
-          {orderedSections.map((section, index) => (
-            <li key={section} className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg p-2">
-              <span className="text-sm text-gray-700">{SECTION_LABELS[section] || section}</span>
-              <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => moveSection(section, 'up')} disabled={index === 0}>
-                  <ArrowUp className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => moveSection(section, 'down')} disabled={index === orderedSections.length - 1}>
-                  <ArrowDown className="w-4 h-4" />
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={settings.sections.hero.enabled}
-            onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, hero: { ...prev.sections.hero, enabled: e.target.checked } } }))}
-          />
-          Enable Hero section
-        </label>
-        <Input label="Hero headline" value={settings.sections.hero.headline} onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, hero: { ...prev.sections.hero, headline: e.target.value } } }))} />
-        <Input label="Hero subheadline" value={settings.sections.hero.subheadline} onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, hero: { ...prev.sections.hero, subheadline: e.target.value } } }))} />
-        <Input label="CTA label" value={settings.sections.hero.ctaLabel} onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, hero: { ...prev.sections.hero, ctaLabel: e.target.value } } }))} />
-        <Input label="CTA link (relative path e.g. events)" value={settings.sections.hero.ctaLink} onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, hero: { ...prev.sections.hero, ctaLink: e.target.value } } }))} />
-        <Input label="Hero background image URL" value={settings.sections.hero.heroImageUrl || ''} onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, hero: { ...prev.sections.hero, heroImageUrl: e.target.value } } }))} />
-        <Input label="Hero logo image URL" value={settings.sections.hero.heroLogoUrl || ''} onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, hero: { ...prev.sections.hero, heroLogoUrl: e.target.value } } }))} />
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={settings.sections.vision.enabled}
-            onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, vision: { ...prev.sections.vision, enabled: e.target.checked } } }))}
-          />
-          Enable Vision/Strategy/Objectives section
-        </label>
-        <Input label="Section title" value={settings.sections.vision.title} onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, vision: { ...prev.sections.vision, title: e.target.value } } }))} />
-        <label className="block text-sm font-medium text-gray-700">Content</label>
-        <textarea
-          className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-          rows={6}
-          value={settings.sections.vision.content}
-          onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, vision: { ...prev.sections.vision, content: e.target.value } } }))}
-        />
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={settings.sections.gallery.enabled}
-            onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, gallery: { ...prev.sections.gallery, enabled: e.target.checked } } }))}
-          />
-          Enable Gallery section
-        </label>
-        <label className="inline-flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer text-sm text-gray-600 hover:bg-gray-50">
-          <Upload className="w-4 h-4" />
-          Upload images
-          <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => uploadImages(e.target.files)} />
-        </label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {settings.sections.gallery.images.map((image, idx) => (
-            <div key={`${image.url}-${idx}`} className="border border-gray-200 rounded-lg p-2 space-y-2">
-              <SafeImage src={image.url} alt={image.caption || `gallery-${idx + 1}`} fallbackSrc="/image-fallback.svg" className="w-full h-24 object-cover rounded" />
-              <Input
-                value={image.caption || ''}
-                onChange={(e) =>
-                  setSettings((prev) => {
-                    const next = [...prev.sections.gallery.images];
-                    next[idx] = { ...next[idx], caption: e.target.value };
-                    return { ...prev, sections: { ...prev.sections, gallery: { ...prev.sections.gallery, images: next } } };
-                  })
-                }
-                placeholder="Caption"
-              />
-              <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => moveGalleryImage(idx, 'up')} disabled={idx === 0}>
-                  <ArrowUp className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => moveGalleryImage(idx, 'down')} disabled={idx === settings.sections.gallery.images.length - 1}>
-                  <ArrowDown className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
+        {/* Theme */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Palette className="w-5 h-5 text-[var(--color-primary)]" />
+            Theme
+          </h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input
+              label="Primary color"
+              value={settings.theme.primaryColor || ''}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, theme: { ...prev.theme, primaryColor: e.target.value } }))
+              }
+              placeholder="#2563eb"
+              leftIcon={<div className="w-4 h-4 rounded-full" style={{ backgroundColor: settings.theme.primaryColor }} />}
+            />
+            <Input
+              label="Secondary color"
+              value={settings.theme.secondaryColor || ''}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, theme: { ...prev.theme, secondaryColor: e.target.value } }))
+              }
+              placeholder="#0ea5e9"
+              leftIcon={<div className="w-4 h-4 rounded-full" style={{ backgroundColor: settings.theme.secondaryColor }} />}
+            />
+            <Input
+              label="Logo URL (optional)"
+              value={settings.theme.logoUrl || ''}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, theme: { ...prev.theme, logoUrl: e.target.value } }))
+              }
+              placeholder="https://..."
+              className="md:col-span-2"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SectionToggleCard
-          title="Events section"
-          enabled={settings.sections.events.enabled}
-          onEnabledChange={(value) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, events: { ...prev.sections.events, enabled: value } } }))}
-          sectionTitle={settings.sections.events.title}
-          onTitleChange={(value) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, events: { ...prev.sections.events, title: value } } }))}
-          showCount={settings.sections.events.showCount}
-          onCountChange={(value) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, events: { ...prev.sections.events, showCount: value } } }))}
-        />
-        <SectionToggleCard
-          title="Programs section"
-          enabled={settings.sections.programs.enabled}
-          onEnabledChange={(value) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, programs: { ...prev.sections.programs, enabled: value } } }))}
-          sectionTitle={settings.sections.programs.title}
-          onTitleChange={(value) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, programs: { ...prev.sections.programs, title: value } } }))}
-          showCount={settings.sections.programs.showCount}
-          onCountChange={(value) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, programs: { ...prev.sections.programs, showCount: value } } }))}
-        />
-      </div>
+        {/* Section Order */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Layout className="w-5 h-5 text-[var(--color-primary)]" />
+            Section order
+          </h2>
+          <ul className="space-y-2">
+            {orderedSections.map((section, index) => (
+              <li
+                key={section}
+                className="flex items-center justify-between gap-3 p-3 bg-gray-50/50 rounded-lg border border-gray-100"
+              >
+                <span className="text-sm font-medium text-gray-700">{SECTION_LABELS[section] || section}</span>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveSection(section, 'up')}
+                    disabled={index === 0}
+                    className="w-8 h-8 p-0"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveSection(section, 'down')}
+                    disabled={index === orderedSections.length - 1}
+                    className="w-8 h-8 p-0"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={settings.sections.groups.enabled}
-            onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, groups: { ...prev.sections.groups, enabled: e.target.checked } } }))}
-          />
-          Enable Groups section
-        </label>
-        <Input
-          label="Groups section title"
-          value={settings.sections.groups.title}
-          onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, groups: { ...prev.sections.groups, title: e.target.value } } }))}
-        />
-        <Input
-          label="Groups to show"
-          type="number"
-          value={String(settings.sections.groups.showCount || 3)}
-          onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, groups: { ...prev.sections.groups, showCount: Number(e.target.value || 3) } } }))}
-        />
-        <label className="block text-sm font-medium text-gray-700">Featured groups</label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {groups.map((group) => (
-            <label key={group._id} className="flex items-center gap-2 text-sm text-gray-700">
+        {/* Hero Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Eye className="w-5 h-5 text-[var(--color-primary)]" />
+              Hero section
+            </h2>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
               <input
                 type="checkbox"
-                checked={settings.sections.groups.featuredGroupIds.includes(group._id)}
+                checked={settings.sections.hero.enabled}
                 onChange={(e) =>
-                  setSettings((prev) => {
-                    const set = new Set(prev.sections.groups.featuredGroupIds);
-                    if (e.target.checked) set.add(group._id);
-                    else set.delete(group._id);
-                    return {
-                      ...prev,
-                      sections: { ...prev.sections, groups: { ...prev.sections.groups, featuredGroupIds: Array.from(set) } }
-                    };
-                  })
+                  setSettings((prev) => ({
+                    ...prev,
+                    sections: { ...prev.sections, hero: { ...prev.sections.hero, enabled: e.target.checked } },
+                  }))
                 }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
               />
-              {group.name}
+              <span>Enabled</span>
             </label>
-          ))}
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input
+              label="Headline"
+              value={settings.sections.hero.headline}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, hero: { ...prev.sections.hero, headline: e.target.value } },
+                }))
+              }
+              className="md:col-span-2"
+            />
+            <Input
+              label="Subheadline"
+              value={settings.sections.hero.subheadline}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, hero: { ...prev.sections.hero, subheadline: e.target.value } },
+                }))
+              }
+              className="md:col-span-2"
+            />
+            <Input
+              label="CTA label"
+              value={settings.sections.hero.ctaLabel}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, hero: { ...prev.sections.hero, ctaLabel: e.target.value } },
+                }))
+              }
+            />
+            <Input
+              label="CTA link (relative path e.g. events)"
+              value={settings.sections.hero.ctaLink}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, hero: { ...prev.sections.hero, ctaLink: e.target.value } },
+                }))
+              }
+            />
+            <Input
+              label="Background image URL"
+              value={settings.sections.hero.heroImageUrl || ''}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, hero: { ...prev.sections.hero, heroImageUrl: e.target.value } },
+                }))
+              }
+            />
+            <Input
+              label="Hero logo URL"
+              value={settings.sections.hero.heroLogoUrl || ''}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, hero: { ...prev.sections.hero, heroLogoUrl: e.target.value } },
+                }))
+              }
+            />
+          </div>
+        </div>
+
+        {/* Vision Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Target className="w-5 h-5 text-[var(--color-primary)]" />
+              Vision / Strategy / Objectives
+            </h2>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.sections.vision.enabled}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    sections: { ...prev.sections, vision: { ...prev.sections.vision, enabled: e.target.checked } },
+                  }))
+                }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+              />
+              <span>Enabled</span>
+            </label>
+          </div>
+          <Input
+            label="Section title"
+            value={settings.sections.vision.title}
+            onChange={(e) =>
+              setSettings((prev) => ({
+                ...prev,
+                sections: { ...prev.sections, vision: { ...prev.sections.vision, title: e.target.value } },
+              }))
+            }
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)]/30 focus:border-[var(--color-primary)] transition"
+              rows={6}
+              value={settings.sections.vision.content}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, vision: { ...prev.sections.vision, content: e.target.value } },
+                }))
+              }
+              placeholder="Enter vision content (use bullet points with - )"
+            />
+          </div>
+        </div>
+
+        {/* Gallery Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-[var(--color-primary)]" />
+              Gallery
+            </h2>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.sections.gallery.enabled}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    sections: { ...prev.sections, gallery: { ...prev.sections.gallery, enabled: e.target.checked } },
+                  }))
+                }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+              />
+              <span>Enabled</span>
+            </label>
+          </div>
+          <label className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer text-sm text-gray-600 hover:bg-gray-50/80 transition">
+            <Upload className="w-4 h-4" />
+            Upload images
+            <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => uploadImages(e.target.files)} />
+          </label>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {settings.sections.gallery.images.map((image, idx) => (
+              <div key={`${image.url}-${idx}`} className="border border-gray-200 rounded-lg p-2 space-y-2 bg-white/50">
+                <SafeImage
+                  src={image.url}
+                  alt={image.caption || `gallery-${idx + 1}`}
+                  fallbackSrc="/image-fallback.svg"
+                  className="w-full h-24 object-cover rounded"
+                />
+                <Input
+                  value={image.caption || ''}
+                  onChange={(e) =>
+                    setSettings((prev) => {
+                      const next = [...prev.sections.gallery.images];
+                      next[idx] = { ...next[idx], caption: e.target.value };
+                      return {
+                        ...prev,
+                        sections: { ...prev.sections, gallery: { ...prev.sections.gallery, images: next } },
+                      };
+                    })
+                  }
+                  placeholder="Caption"
+                  size="sm"
+                />
+                <div className="flex gap-1 justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveGalleryImage(idx, 'up')}
+                    disabled={idx === 0}
+                    className="w-7 h-7 p-0"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveGalleryImage(idx, 'down')}
+                    disabled={idx === settings.sections.gallery.images.length - 1}
+                    className="w-7 h-7 p-0"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Events & Programs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SectionToggleCard
+            icon={<Calendar className="w-5 h-5 text-[var(--color-primary)]" />}
+            title="Events section"
+            enabled={settings.sections.events.enabled}
+            onEnabledChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                sections: { ...prev.sections, events: { ...prev.sections.events, enabled: value } },
+              }))
+            }
+            sectionTitle={settings.sections.events.title}
+            onTitleChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                sections: { ...prev.sections, events: { ...prev.sections.events, title: value } },
+              }))
+            }
+            showCount={settings.sections.events.showCount}
+            onCountChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                sections: { ...prev.sections, events: { ...prev.sections.events, showCount: value } },
+              }))
+            }
+          />
+          <SectionToggleCard
+            icon={<BookOpen className="w-5 h-5 text-[var(--color-primary)]" />}
+            title="Programs section"
+            enabled={settings.sections.programs.enabled}
+            onEnabledChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                sections: { ...prev.sections, programs: { ...prev.sections.programs, enabled: value } },
+              }))
+            }
+            sectionTitle={settings.sections.programs.title}
+            onTitleChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                sections: { ...prev.sections, programs: { ...prev.sections.programs, title: value } },
+              }))
+            }
+            showCount={settings.sections.programs.showCount}
+            onCountChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                sections: { ...prev.sections, programs: { ...prev.sections.programs, showCount: value } },
+              }))
+            }
+          />
+        </div>
+
+        {/* Groups Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-[var(--color-primary)]" />
+              Groups section
+            </h2>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.sections.groups.enabled}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    sections: { ...prev.sections, groups: { ...prev.sections.groups, enabled: e.target.checked } },
+                  }))
+                }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+              />
+              <span>Enabled</span>
+            </label>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input
+              label="Section title"
+              value={settings.sections.groups.title}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, groups: { ...prev.sections.groups, title: e.target.value } },
+                }))
+              }
+            />
+            <Input
+              label="Number of groups to show"
+              type="number"
+              min="1"
+              value={String(settings.sections.groups.showCount || 3)}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: {
+                    ...prev.sections,
+                    groups: { ...prev.sections.groups, showCount: Number(e.target.value || 3) },
+                  },
+                }))
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Featured groups</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {groups.map((group) => (
+                <label key={group._id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.sections.groups.featuredGroupIds.includes(group._id)}
+                    onChange={(e) =>
+                      setSettings((prev) => {
+                        const set = new Set(prev.sections.groups.featuredGroupIds);
+                        if (e.target.checked) set.add(group._id);
+                        else set.delete(group._id);
+                        return {
+                          ...prev,
+                          sections: {
+                            ...prev.sections,
+                            groups: { ...prev.sections.groups, featuredGroupIds: Array.from(set) },
+                          },
+                        };
+                      })
+                    }
+                    className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+                  />
+                  {group.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Announcements & Calendar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-[var(--color-primary)]" />
+                Announcements
+              </h2>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.sections.announcements.enabled}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      sections: {
+                        ...prev.sections,
+                        announcements: { ...prev.sections.announcements, enabled: e.target.checked },
+                      },
+                    }))
+                  }
+                  className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+                />
+                <span>Enabled</span>
+              </label>
+            </div>
+            <Input
+              label="Section title"
+              value={settings.sections.announcements.title}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: {
+                    ...prev.sections,
+                    announcements: { ...prev.sections.announcements, title: e.target.value },
+                  },
+                }))
+              }
+            />
+          </div>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-[var(--color-primary)]" />
+                Calendar
+              </h2>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.sections.calendar.enabled}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      sections: { ...prev.sections, calendar: { ...prev.sections.calendar, enabled: e.target.checked } },
+                    }))
+                  }
+                  className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+                />
+                <span>Enabled</span>
+              </label>
+            </div>
+            <Input
+              label="Section title"
+              value={settings.sections.calendar.title}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  sections: { ...prev.sections, calendar: { ...prev.sections.calendar, title: e.target.value } },
+                }))
+              }
+            />
+          </div>
         </div>
       </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={settings.sections.announcements.enabled}
-            onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, announcements: { ...prev.sections.announcements, enabled: e.target.checked } } }))}
-          />
-          Show announcements / pinned updates
-        </label>
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={settings.sections.calendar.enabled}
-            onChange={(e) => setSettings((prev) => ({ ...prev, sections: { ...prev.sections, calendar: { ...prev.sections.calendar, enabled: e.target.checked } } }))}
-          />
-          Show calendar/upcoming schedule section
-        </label>
-      </div>
-    </div>
+    </>
   );
 }
 
 function SectionToggleCard({
+  icon,
   title,
   enabled,
   onEnabledChange,
   sectionTitle,
   onTitleChange,
   showCount,
-  onCountChange
+  onCountChange,
 }: {
+  icon?: React.ReactNode;
   title: string;
   enabled: boolean;
   onEnabledChange: (value: boolean) => void;
@@ -406,13 +788,30 @@ function SectionToggleCard({
   onCountChange: (value: number) => void;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-      <label className="flex items-center gap-2 text-sm text-gray-700">
-        <input type="checkbox" checked={enabled} onChange={(e) => onEnabledChange(e.target.checked)} />
-        Enable {title}
-      </label>
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          {icon}
+          {title}
+        </h2>
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => onEnabledChange(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+          />
+          <span>Enabled</span>
+        </label>
+      </div>
       <Input label="Section title" value={sectionTitle} onChange={(e) => onTitleChange(e.target.value)} />
-      <Input label="Show count" type="number" value={String(showCount || 3)} onChange={(e) => onCountChange(Number(e.target.value || 3))} />
+      <Input
+        label="Number to show"
+        type="number"
+        min="1"
+        value={String(showCount || 3)}
+        onChange={(e) => onCountChange(Number(e.target.value || 3))}
+      />
     </div>
   );
 }

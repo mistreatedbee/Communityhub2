@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import {
+  Save,
+  Palette,
+  Users,
+  Settings,
+  Eye,
+  EyeOff,
+  Check,
+} from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
@@ -11,7 +20,7 @@ const SECTION_OPTIONS = [
   { key: 'resources', label: 'Files' },
   { key: 'groups', label: 'Groups' },
   { key: 'events', label: 'Events' },
-  { key: 'programs', label: 'Programs' }
+  { key: 'programs', label: 'Programs' },
 ];
 
 type Settings = {
@@ -39,9 +48,13 @@ type TenantProfile = {
 export function TenantAdminSettingsPage() {
   const { tenant, refresh } = useTenant();
   const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<TenantProfile | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [theme, setTheme] = useState<{ primaryColor: string; secondaryColor: string }>({ primaryColor: '', secondaryColor: '' });
+  const [theme, setTheme] = useState<{ primaryColor: string; secondaryColor: string }>({
+    primaryColor: '',
+    secondaryColor: '',
+  });
   const [profileSaving, setProfileSaving] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
@@ -49,22 +62,25 @@ export function TenantAdminSettingsPage() {
   useEffect(() => {
     const load = async () => {
       if (!tenant?.id) return;
+      setLoading(true);
       try {
         const [profileData, settingsData, homeData] = await Promise.all([
           apiClient<TenantProfile>(`/api/tenants/id/${tenant.id}`),
           tenantFeaturesGet<Settings>(tenant.id, '/settings'),
-          tenantFeaturesGet<HomeSettings>(tenant.id, '/home-settings').catch(() => null)
+          tenantFeaturesGet<HomeSettings>(tenant.id, '/home-settings').catch(() => null),
         ]);
         setProfile(profileData);
         setSettings(settingsData);
         if (homeData?.theme) {
           setTheme({
             primaryColor: homeData.theme.primaryColor ?? '',
-            secondaryColor: homeData.theme.secondaryColor ?? ''
+            secondaryColor: homeData.theme.secondaryColor ?? '',
           });
         }
       } catch (e) {
         addToast(e instanceof Error ? e.message : 'Failed to load settings', 'error');
+      } finally {
+        setLoading(false);
       }
     };
     void load();
@@ -81,8 +97,8 @@ export function TenantAdminSettingsPage() {
           description: profile.description ?? '',
           logoUrl: profile.logoUrl ?? '',
           category: profile.category ?? '',
-          location: profile.location ?? ''
-        })
+          location: profile.location ?? '',
+        }),
       });
       addToast('Community profile updated successfully.', 'success');
       await refresh();
@@ -117,8 +133,8 @@ export function TenantAdminSettingsPage() {
         theme: {
           primaryColor: theme.primaryColor,
           secondaryColor: theme.secondaryColor,
-          logoUrl: current?.theme?.logoUrl ?? ''
-        }
+          logoUrl: current?.theme?.logoUrl ?? '',
+        },
       });
       addToast('Brand colors saved successfully.', 'success');
       await refresh();
@@ -133,142 +149,284 @@ export function TenantAdminSettingsPage() {
     setSettings((prev) => {
       if (!prev) return prev;
       const sections = prev.enabledSections ?? SECTION_OPTIONS.map((s) => s.key);
-      const next = sections.includes(key) ? sections.filter((s) => s !== key) : [...sections, key];
+      const next = sections.includes(key)
+        ? sections.filter((s) => s !== key)
+        : [...sections, key];
       return { ...prev, enabledSections: next };
     });
   };
 
-  if (!settings || !profile) return <p className="text-sm text-gray-500">Loading...</p>;
-
-  return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">Community Profile &amp; Settings</h1>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Community profile</h2>
-        <p className="text-sm text-gray-500">Name, description, and logo appear on your public community page.</p>
-        <Input
-          label="Community name"
-          value={profile.name}
-          onChange={(e) => setProfile((p) => (p ? { ...p, name: e.target.value } : p))}
-        />
-        <Input
-          label="Description"
-          value={profile.description ?? ''}
-          onChange={(e) => setProfile((p) => (p ? { ...p, description: e.target.value } : p))}
-          placeholder="Short description for your community"
-        />
-        <Input
-          label="Logo URL"
-          value={profile.logoUrl ?? ''}
-          onChange={(e) => setProfile((p) => (p ? { ...p, logoUrl: e.target.value } : p))}
-          placeholder="https://..."
-        />
-        <Input
-          label="Category (optional)"
-          value={profile.category ?? ''}
-          onChange={(e) => setProfile((p) => (p ? { ...p, category: e.target.value } : p))}
-        />
-        <Input
-          label="Location (optional)"
-          value={profile.location ?? ''}
-          onChange={(e) => setProfile((p) => (p ? { ...p, location: e.target.value } : p))}
-        />
-        <Button onClick={() => void saveProfile()} isLoading={profileSaving}>
-          Save community profile
-        </Button>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Registration settings</h2>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={settings.publicSignup}
-            onChange={(e) => setSettings((prev) => (prev ? { ...prev, publicSignup: e.target.checked } : prev))}
+  // Loading skeleton
+  if (loading) {
+    return (
+      <>
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, gray 1px, transparent 0)`,
+              backgroundSize: '32px 32px',
+            }}
           />
-          <span className="text-sm text-gray-700">Allow directory/public signup</span>
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={settings.approvalRequired}
-            onChange={(e) => setSettings((prev) => (prev ? { ...prev, approvalRequired: e.target.checked } : prev))}
-          />
-          <span className="text-sm text-gray-700">Require admin approval for new members</span>
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={settings.registrationFieldsEnabled}
-            onChange={(e) =>
-              setSettings((prev) => (prev ? { ...prev, registrationFieldsEnabled: e.target.checked } : prev))
-            }
-          />
-          <span className="text-sm text-gray-700">Enable custom registration fields</span>
-        </label>
-        <div className="pt-2">
-          <p className="text-sm font-medium text-gray-700 mb-2">Sections to show in nav</p>
-          <div className="flex flex-wrap gap-4">
-            {SECTION_OPTIONS.map(({ key, label }) => (
-              <label key={key} className="inline-flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={(settings.enabledSections ?? SECTION_OPTIONS.map((s) => s.key)).includes(key)}
-                  onChange={() => toggleSection(key)}
-                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-sm text-gray-700">{label}</span>
-              </label>
+        </div>
+        <div className="space-y-6 relative animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200">
+                <div className="h-5 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-        <Button onClick={() => void saveSettings()} isLoading={settingsSaving}>
-          Save registration settings
-        </Button>
+      </>
+    );
+  }
+
+  if (!settings || !profile) {
+    return (
+      <>
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, gray 1px, transparent 0)`,
+              backgroundSize: '32px 32px',
+            }}
+          />
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-sm text-gray-500">Settings not found.</p>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {/* Animated background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, gray 1px, transparent 0)`,
+            backgroundSize: '32px 32px',
+          }}
+        />
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Brand colors</h2>
-        <p className="text-sm text-gray-500">Primary and secondary colors used across the community.</p>
-        <div className="grid grid-cols-2 gap-4 max-w-md">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Primary color</label>
-            <div className="flex gap-2">
-              <input
-                type="color"
-                value={theme.primaryColor || '#6366f1'}
-                onChange={(e) => setTheme((t) => ({ ...t, primaryColor: e.target.value }))}
-                className="h-10 w-14 rounded border border-gray-300 cursor-pointer"
-              />
-              <Input
-                value={theme.primaryColor}
-                onChange={(e) => setTheme((t) => ({ ...t, primaryColor: e.target.value }))}
-                placeholder="#6366f1"
-              />
-            </div>
+      <div className="space-y-8 relative">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+          Community Profile & Settings
+        </h1>
+
+        {/* Community Profile */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Users className="w-5 h-5 text-[var(--color-primary)]" />
+            Community profile
+          </h2>
+          <p className="text-sm text-gray-500">
+            Name, description, and logo appear on your public community page.
+          </p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input
+              label="Community name"
+              value={profile.name}
+              onChange={(e) => setProfile((p) => (p ? { ...p, name: e.target.value } : p))}
+              placeholder="My Community"
+              required
+            />
+            <Input
+              label="Logo URL"
+              value={profile.logoUrl ?? ''}
+              onChange={(e) => setProfile((p) => (p ? { ...p, logoUrl: e.target.value } : p))}
+              placeholder="https://example.com/logo.png"
+            />
+            <Input
+              label="Description"
+              value={profile.description ?? ''}
+              onChange={(e) => setProfile((p) => (p ? { ...p, description: e.target.value } : p))}
+              placeholder="Short description for your community"
+              className="md:col-span-2"
+            />
+            <Input
+              label="Category (optional)"
+              value={profile.category ?? ''}
+              onChange={(e) => setProfile((p) => (p ? { ...p, category: e.target.value } : p))}
+              placeholder="e.g., Technology, Wellness"
+            />
+            <Input
+              label="Location (optional)"
+              value={profile.location ?? ''}
+              onChange={(e) => setProfile((p) => (p ? { ...p, location: e.target.value } : p))}
+              placeholder="e.g., New York, NY"
+            />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary color</label>
-            <div className="flex gap-2">
-              <input
-                type="color"
-                value={theme.secondaryColor || '#8b5cf6'}
-                onChange={(e) => setTheme((t) => ({ ...t, secondaryColor: e.target.value }))}
-                className="h-10 w-14 rounded border border-gray-300 cursor-pointer"
-              />
-              <Input
-                value={theme.secondaryColor}
-                onChange={(e) => setTheme((t) => ({ ...t, secondaryColor: e.target.value }))}
-                placeholder="#8b5cf6"
-              />
-            </div>
-          </div>
+          <Button
+            onClick={() => void saveProfile()}
+            isLoading={profileSaving}
+            leftIcon={<Save className="w-4 h-4" />}
+            className="w-full sm:w-auto"
+          >
+            Save community profile
+          </Button>
         </div>
-        <Button onClick={() => void saveTheme()} isLoading={themeSaving}>
-          Save brand colors
-        </Button>
+
+        {/* Registration Settings */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-[var(--color-primary)]" />
+            Registration settings
+          </h2>
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.publicSignup}
+                onChange={(e) =>
+                  setSettings((prev) => (prev ? { ...prev, publicSignup: e.target.checked } : prev))
+                }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+              />
+              <span className="text-sm text-gray-700">Allow directory/public signup</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.approvalRequired}
+                onChange={(e) =>
+                  setSettings((prev) =>
+                    prev ? { ...prev, approvalRequired: e.target.checked } : prev
+                  )
+                }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+              />
+              <span className="text-sm text-gray-700">Require admin approval for new members</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.registrationFieldsEnabled}
+                onChange={(e) =>
+                  setSettings((prev) =>
+                    prev ? { ...prev, registrationFieldsEnabled: e.target.checked } : prev
+                  )
+                }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+              />
+              <span className="text-sm text-gray-700">Enable custom registration fields</span>
+            </label>
+          </div>
+
+          <div className="pt-2">
+            <p className="text-sm font-medium text-gray-700 mb-3">Sections to show in navigation</p>
+            <div className="flex flex-wrap gap-4">
+              {SECTION_OPTIONS.map(({ key, label }) => {
+                const isChecked = (settings.enabledSections ?? SECTION_OPTIONS.map((s) => s.key)).includes(key);
+                return (
+                  <label key={key} className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleSection(key)}
+                      className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+                    />
+                    <span className="text-sm text-gray-700">{label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button
+            onClick={() => void saveSettings()}
+            isLoading={settingsSaving}
+            leftIcon={<Save className="w-4 h-4" />}
+            className="w-full sm:w-auto"
+          >
+            Save registration settings
+          </Button>
+        </div>
+
+        {/* Brand Colors */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Palette className="w-5 h-5 text-[var(--color-primary)]" />
+            Brand colors
+          </h2>
+          <p className="text-sm text-gray-500">
+            Primary and secondary colors used across the community (headers, buttons, links).
+          </p>
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl">
+            {/* Primary color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Primary color</label>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={theme.primaryColor || '#6366f1'}
+                    onChange={(e) => setTheme((t) => ({ ...t, primaryColor: e.target.value }))}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div
+                    className="w-10 h-10 rounded-lg border border-gray-300 shadow-sm"
+                    style={{ backgroundColor: theme.primaryColor || '#6366f1' }}
+                  />
+                </div>
+                <Input
+                  value={theme.primaryColor}
+                  onChange={(e) => setTheme((t) => ({ ...t, primaryColor: e.target.value }))}
+                  placeholder="#6366f1"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            {/* Secondary color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Secondary color</label>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={theme.secondaryColor || '#8b5cf6'}
+                    onChange={(e) => setTheme((t) => ({ ...t, secondaryColor: e.target.value }))}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div
+                    className="w-10 h-10 rounded-lg border border-gray-300 shadow-sm"
+                    style={{ backgroundColor: theme.secondaryColor || '#8b5cf6' }}
+                  />
+                </div>
+                <Input
+                  value={theme.secondaryColor}
+                  onChange={(e) => setTheme((t) => ({ ...t, secondaryColor: e.target.value }))}
+                  placeholder="#8b5cf6"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => void saveTheme()}
+            isLoading={themeSaving}
+            leftIcon={<Save className="w-4 h-4" />}
+            className="w-full sm:w-auto"
+          >
+            Save brand colors
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

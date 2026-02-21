@@ -22,7 +22,7 @@ export function PricingPage() {
   const { organization } = useTheme();
 
   const features = [
-    { icon: Users, text: 'Up to 25 members' },
+    { icon: Users, text: 'Up to 450 members' },
     { icon: Shield, text: 'Admin roles (Owner, Admin, Moderator)' },
     { icon: FileText, text: 'Posts & resources' },
     { icon: Calendar, text: 'Events & programs' },
@@ -32,7 +32,7 @@ export function PricingPage() {
 
   const faqs = [
     {
-      q: 'What happens if I need more than 25 members?',
+      q: 'What happens if I need more than 450 members?',
       a: 'Contact our sales team – we offer custom enterprise plans with higher member limits and additional features.',
     },
     {

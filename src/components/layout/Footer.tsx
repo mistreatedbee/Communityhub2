@@ -135,7 +135,7 @@ export function Footer() {
           </p>
           <p className="text-sm text-gray-400 flex items-center gap-1.5">
             Built with <Heart className="w-3.5 h-3.5 text-red-400 fill-current" /> by{' '}
-            <span className="font-medium text-gray-600">Community Hub</span>
+            <span className="font-medium text-gray-600">NextWave Digital</span>
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -30,10 +30,10 @@ import { Spinner } from '../../components/ui/Spinner';
 
 export function HomePage() {
   const { organization } = useTheme();
-  const { user, loading, resolveDashboardTarget } = useAuth();
+  const { user, resolveDashboardTarget } = useAuth();
   const navigate = useNavigate();
-  const [dashboardTarget, setDashboardTarget] = React.useState<string | null>(null);
-  const [dashboardLoading, setDashboardLoading] = React.useState(false);
+  const [dashboardTarget, setDashboardTarget] = useState<string | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   useEffect(() => {
     if (!user && hasLicenseSession()) {
@@ -48,7 +48,7 @@ export function HomePage() {
       return;
     }
     setDashboardLoading(true);
-    void resolveDashboardTarget()
+    resolveDashboardTarget()
       .then((target) => {
         if (mounted) setDashboardTarget(target);
       })
@@ -61,8 +61,8 @@ export function HomePage() {
   }, [user, resolveDashboardTarget]);
 
   return (
-    <>
-      {/* Premium animated background (same as before) */}
+    <div className="relative min-h-screen bg-white text-slate-900 selection:bg-[var(--color-primary)] selection:text-white overflow-x-hidden">
+      {/* --- PREMIUM BACKGROUND (MERGED) --- */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50" />
         <div
@@ -72,28 +72,40 @@ export function HomePage() {
             backgroundSize: '32px 32px',
           }}
         />
+        {/* Extra glow from first design */}
         <div className="absolute top-0 -left-4 w-96 h-96 bg-[var(--color-primary)]/5 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 -right-4 w-96 h-96 bg-[var(--color-primary)]/5 rounded-full blur-3xl animate-pulse delay-1000" />
+        {/* Additional ambient elements from first design */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] rounded-full bg-[var(--color-primary)]/20 blur-[120px] animate-pulse" />
+        <div className="absolute top-[10%] right-[-5%] w-[30%] h-[50%] rounded-full bg-blue-200/30 blur-[100px]" />
       </div>
 
-      <div className="relative min-h-screen flex flex-col">
-        {/* 1️⃣ HERO SECTION — STRONG, CONFIDENT, UNIGNORABLE */}
-        <section className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="max-w-7xl mx-auto w-full">
+      <div className="relative flex flex-col">
+        {/* --- 1. HERO SECTION (MERGED) --- */}
+        <section className="relative pt-24 pb-20 md:pt-40 md:pb-32 px-6">
+          <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Left column – text content */}
+              {/* Left column – text */}
               <div className="text-center lg:text-left animate-fade-in-left">
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900 mb-6 leading-tight">
-                  Your Community.
-                  <br />
-                  <span className="text-[var(--color-primary)]">Your Website.</span>
-                  <br />
-                  Your Rules.
+                {/* Pre-heading badge */}
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest mb-8 animate-fade-in">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-primary)] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-primary)]"></span>
+                  </span>
+                  The Future of Community Management
+                </div>
+
+                <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8">
+                  YOUR COMMUNITY.<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-primary)] to-blue-600">
+                    YOUR RULES.
+                  </span>
                 </h1>
-                <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-2xl mx-auto lg:mx-0">
-                  Create a private, branded community platform where members connect, events happen,
-                  and content lives — all in one place. No more WhatsApp chaos or Facebook group
-                  limits.
+
+                <p className="max-w-2xl mx-auto lg:mx-0 text-lg md:text-2xl text-slate-600 mb-10 leading-relaxed">
+                  Stop losing your members in messy group chats. Build a professional, branded hub
+                  where events happen, content lives, and growth is inevitable.
                 </p>
 
                 {/* CTA group */}
@@ -101,35 +113,36 @@ export function HomePage() {
                   <Link to="/enter-license">
                     <Button
                       size="lg"
-                      className="w-full sm:w-auto gap-2 group"
-                      rightIcon={<ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+                      className="w-full sm:w-auto px-10 py-8 text-xl rounded-2xl shadow-2xl shadow-[var(--color-primary)]/20 hover:scale-105 transition-all"
+                      rightIcon={<ArrowRight className="w-6 h-6" />}
                     >
-                      Create a Community Hub
+                      Create Your Hub
                     </Button>
                   </Link>
 
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                    onClick={() => navigate('/login')}
-                  >
-                    Admin Login
-                  </Button>
+                  {user && dashboardTarget && !dashboardLoading ? (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full sm:w-auto px-10 py-8 text-xl rounded-2xl"
+                      onClick={() => navigate(dashboardTarget)}
+                    >
+                      {dashboardTarget === '/my-communities'
+                        ? 'My Communities'
+                        : 'My Community'}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full sm:w-auto px-10 py-8 text-xl rounded-2xl"
+                      onClick={() => navigate('/login')}
+                    >
+                      Admin Login
+                    </Button>
+                  )}
                 </div>
 
-                {/* Dynamic dashboard link for logged-in users */}
-                {user && dashboardTarget && !dashboardLoading && (
-                  <div className="mt-4">
-                    <Link to={dashboardTarget}>
-                      <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                        {dashboardTarget === '/my-communities'
-                          ? 'Go to My Communities'
-                          : 'Go to My Community'}
-                      </Button>
-                    </Link>
-                  </div>
-                )}
                 {user && dashboardLoading && (
                   <div className="mt-4 inline-flex items-center justify-center px-4">
                     <Spinner size="sm" />
@@ -142,12 +155,10 @@ export function HomePage() {
                 </p>
               </div>
 
-              {/* Right column – abstract visual / floating elements */}
+              {/* Right column – floating icons (from second design) */}
               <div className="relative hidden lg:flex items-center justify-center animate-fade-in-right">
                 <div className="relative w-full max-w-md">
-                  {/* Main glowing orb (abstract shape) */}
                   <div className="relative z-10 w-72 h-72 mx-auto rounded-full bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-primary)]/5 blur-2xl" />
-                  {/* Floating icons representing community elements */}
                   <div className="absolute top-0 -left-12 z-20 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-4 border border-gray-200/50 animate-float-slow">
                     <Home className="w-6 h-6 text-[var(--color-primary)]" />
                   </div>
@@ -166,62 +177,59 @@ export function HomePage() {
           </div>
         </section>
 
-        {/* 2️⃣ “WHY THIS EXISTS” — PROBLEM → SOLUTION */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-gray-200/50">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            {/* Problem side */}
-            <div className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Communities are scattered across WhatsApp, email, PDFs, Facebook…
-              </h2>
-              <div className="space-y-4 text-gray-600 text-lg">
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-red-100 text-red-600 flex-shrink-0 flex items-center justify-center text-sm">✕</span>
-                  <span>No control – your content lives on someone else’s platform</span>
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-red-100 text-red-600 flex-shrink-0 flex items-center justify-center text-sm">✕</span>
-                  <span>No structure – important announcements buried in chat</span>
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-red-100 text-red-600 flex-shrink-0 flex items-center justify-center text-sm">✕</span>
-                  <span>No ownership – you don’t own your member relationships</span>
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-red-100 text-red-600 flex-shrink-0 flex items-center justify-center text-sm">✕</span>
-                  <span>No branding – your community looks like every other group</span>
-                </p>
+        {/* --- 2. PROBLEM/SOLUTION (from second design) --- */}
+        <section className="py-24 bg-slate-50 border-y border-slate-200">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div>
+                <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+                  Group chats are where communities go to die.
+                </h2>
+                <div className="space-y-6">
+                  {[
+                    { title: 'No Structure', desc: 'Important announcements get buried in seconds.' },
+                    { title: 'No Ownership', desc: 'You are a guest on someone else’s platform.' },
+                    { title: 'No Branding', desc: 'Your organization looks like a casual hobby.' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex gap-4">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">
+                        ✕
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-lg">{item.title}</h4>
+                        <p className="text-slate-500">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            {/* Solution side */}
-            <div className="bg-[var(--color-primary)]/5 p-8 rounded-3xl border border-[var(--color-primary)]/10">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Zap className="w-6 h-6 text-[var(--color-primary)]" />
-                One platform. Full control.
-              </h3>
-              <div className="space-y-4 text-gray-700 text-lg">
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-green-100 text-green-600 flex-shrink-0 flex items-center justify-center text-sm">✓</span>
-                  <span>Your own branded website – not a group chat</span>
+              <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
+                <div className="inline-flex p-3 rounded-2xl bg-green-50 text-green-600 mb-4">
+                  <Shield className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold mb-4">The Community Hub Advantage</h3>
+                <p className="text-slate-600 mb-6">
+                  One centralized home for everything. Your members don't just chat; they engage with
+                  a structured organization designed for scale.
                 </p>
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-green-100 text-green-600 flex-shrink-0 flex items-center justify-center text-sm">✓</span>
-                  <span>Clean structure – announcements, events, resources in one place</span>
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-green-100 text-green-600 flex-shrink-0 flex items-center justify-center text-sm">✓</span>
-                  <span>Full ownership – you control data and relationships</span>
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="inline-block w-6 h-6 rounded-full bg-green-100 text-green-600 flex-shrink-0 flex items-center justify-center text-sm">✓</span>
-                  <span>Professional presence – impress your members from day one</span>
-                </p>
+                <ul className="space-y-3">
+                  {[
+                    'Private Member Directory',
+                    'Structured Resource Library',
+                    'Event Management',
+                    'Unified Announcements',
+                  ].map((check) => (
+                    <li key={check} className="flex items-center gap-2 font-medium">
+                      <CheckCircle className="w-5 h-5 text-green-500" /> {check}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 3️⃣ PLATFORM CAPABILITIES — NOT FEATURES, CAPABILITIES */}
+        {/* --- 3. PLATFORM CAPABILITIES (alternating, from second design) --- */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -249,14 +257,14 @@ export function HomePage() {
                 </p>
               </div>
               <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center text-gray-400 border-2 border-dashed">
-                [Mockup: Community homepage with header, feed, sidebar]
+                [Mockup: Community homepage]
               </div>
             </div>
 
             {/* Capability 2 */}
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="order-2 md:order-1 bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center text-gray-400 border-2 border-dashed">
-                [Mockup: Announcements feed with pinned posts]
+                [Mockup: Announcements feed]
               </div>
               <div className="order-1 md:order-2">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-sm font-medium mb-4">
@@ -267,8 +275,8 @@ export function HomePage() {
                   Never lose an important message in chat again.
                 </h3>
                 <p className="text-lg text-gray-600">
-                  Push announcements via email, in-app, or even SMS. Members can comment, react,
-                  and you always know who has seen what.
+                  Push announcements via email, in-app, or even SMS. Members can comment, react, and
+                  you always know who has seen what.
                 </p>
               </div>
             </div>
@@ -284,19 +292,19 @@ export function HomePage() {
                   From weekly gatherings to multi‑week courses.
                 </h3>
                 <p className="text-lg text-gray-600">
-                  Create events with RSVPs, calendars, and reminders. Run programs with
-                  curriculum, homework, and progress tracking.
+                  Create events with RSVPs, calendars, and reminders. Run programs with curriculum,
+                  homework, and progress tracking.
                 </p>
               </div>
               <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center text-gray-400 border-2 border-dashed">
-                [Mockup: Event calendar and program overview]
+                [Mockup: Event calendar]
               </div>
             </div>
 
             {/* Capability 4 */}
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="order-2 md:order-1 bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center text-gray-400 border-2 border-dashed">
-                [Mockup: File library with folders]
+                [Mockup: File library]
               </div>
               <div className="order-1 md:order-2">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-sm font-medium mb-4">
@@ -329,14 +337,14 @@ export function HomePage() {
                 </p>
               </div>
               <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center text-gray-400 border-2 border-dashed">
-                [Mockup: Groups list and group homepage]
+                [Mockup: Groups list]
               </div>
             </div>
 
             {/* Capability 6 */}
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="order-2 md:order-1 bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center text-gray-400 border-2 border-dashed">
-                [Mockup: Member directory with profiles]
+                [Mockup: Member directory]
               </div>
               <div className="order-1 md:order-2">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-sm font-medium mb-4">
@@ -355,63 +363,43 @@ export function HomePage() {
           </div>
         </section>
 
-        {/* 4️⃣ LIVE COMMUNITY EXPERIENCE PREVIEW */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 bg-gray-50/50 rounded-3xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              See what your community will look like
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              This isn’t a dashboard. It’s a beautiful, member‑facing website.
-            </p>
-          </div>
+        {/* --- 4. LIVE COMMUNITY PREVIEW (from first design, enhanced) --- */}
+        <section className="py-24 bg-slate-900 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                Experience the Platform
+              </h2>
+              <p className="text-slate-400">This isn’t a dashboard. It’s a beautiful, member‑facing website.</p>
+            </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Preview cards – static mockups that look real */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-              <div className="h-40 bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-primary)]/5 flex items-center justify-center">
-                <Home className="w-12 h-12 text-[var(--color-primary)]/40" />
+            {/* Browser mockup */}
+            <div className="relative mx-auto max-w-5xl rounded-t-2xl border-x border-t border-slate-700 bg-slate-800 p-4 shadow-2xl">
+              <div className="flex gap-2 mb-4 border-b border-slate-700 pb-4">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
               </div>
-              <div className="p-4">
-                <p className="font-semibold text-gray-900">Community Homepage</p>
-                <p className="text-sm text-gray-500">Welcome feed, upcoming events, recent files</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-              <div className="h-40 bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
-                <Megaphone className="w-12 h-12 text-blue-400" />
-              </div>
-              <div className="p-4">
-                <p className="font-semibold text-gray-900">Announcements</p>
-                <p className="text-sm text-gray-500">Pinned posts, reactions, read receipts</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-              <div className="h-40 bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center">
-                <Calendar className="w-12 h-12 text-green-400" />
-              </div>
-              <div className="p-4">
-                <p className="font-semibold text-gray-900">Events Calendar</p>
-                <p className="text-sm text-gray-500">RSVPs, reminders, recurring events</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-              <div className="h-40 bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center">
-                <FileText className="w-12 h-12 text-purple-400" />
-              </div>
-              <div className="p-4">
-                <p className="font-semibold text-gray-900">Resources</p>
-                <p className="text-sm text-gray-500">Files, links, organised folders</p>
+              <div className="grid grid-cols-12 gap-4 h-[400px]">
+                <div className="col-span-3 space-y-3">
+                  <div className="h-8 w-full bg-slate-700 rounded animate-pulse" />
+                  <div className="h-32 w-full bg-slate-700/50 rounded" />
+                  <div className="h-32 w-full bg-slate-700/50 rounded" />
+                </div>
+                <div className="col-span-9 bg-slate-700/30 rounded-lg p-6">
+                  <div className="h-4 w-1/3 bg-slate-600 rounded mb-6" />
+                  <div className="space-y-4">
+                    <div className="h-20 w-full bg-slate-600/40 rounded-xl" />
+                    <div className="h-20 w-full bg-slate-600/40 rounded-xl" />
+                    <div className="h-20 w-full bg-slate-600/40 rounded-xl" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <p className="text-center text-gray-500 mt-8 italic">
-            *Live previews are static mockups for demonstration.
-          </p>
         </section>
 
-        {/* 5️⃣ WHO THIS PLATFORM IS BUILT FOR */}
+        {/* --- 5. WHO IT'S BUILT FOR (from second design) --- */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -423,54 +411,24 @@ export function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-shadow">
-              <Building2 className="w-10 h-10 text-[var(--color-primary)] mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Churches & Ministries</h3>
-              <p className="text-gray-600">
-                Connect your congregation beyond Sunday. Small groups, prayer requests, sermon
-                notes, and events.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-shadow">
-              <HeartHandshake className="w-10 h-10 text-[var(--color-primary)] mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">NGOs & Community Organisations</h3>
-              <p className="text-gray-600">
-                Coordinate volunteers, share impact reports, and run campaigns with transparency.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-shadow">
-              <Users className="w-10 h-10 text-[var(--color-primary)] mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Training & Education Groups</h3>
-              <p className="text-gray-600">
-                Offer courses, share materials, and track progress – all under your brand.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-shadow">
-              <Sparkles className="w-10 h-10 text-[var(--color-primary)] mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Youth & Outreach Programs</h3>
-              <p className="text-gray-600">
-                Engage young people with modern tools, event signups, and safe communication.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-shadow">
-              <Globe className="w-10 h-10 text-[var(--color-primary)] mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Local Movements & Initiatives</h3>
-              <p className="text-gray-600">
-                Organise neighbourhood projects, share updates, and grow your local impact.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-shadow">
-              <BarChart3 className="w-10 h-10 text-[var(--color-primary)] mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">…and any membership group</h3>
-              <p className="text-gray-600">
-                Alumni associations, hobby clubs, professional networks – if you have members, we
-                have a home.
-              </p>
-            </div>
+            {[
+              { icon: Building2, title: 'Churches & Ministries', desc: 'Connect your congregation beyond Sunday. Small groups, prayer requests, sermon notes, and events.' },
+              { icon: HeartHandshake, title: 'NGOs & Community Organisations', desc: 'Coordinate volunteers, share impact reports, and run campaigns with transparency.' },
+              { icon: Users, title: 'Training & Education Groups', desc: 'Offer courses, share materials, and track progress – all under your brand.' },
+              { icon: Sparkles, title: 'Youth & Outreach Programs', desc: 'Engage young people with modern tools, event signups, and safe communication.' },
+              { icon: Globe, title: 'Local Movements & Initiatives', desc: 'Organise neighbourhood projects, share updates, and grow your local impact.' },
+              { icon: BarChart3, title: '…and any membership group', desc: 'Alumni associations, hobby clubs, professional networks – if you have members, we have a home.' },
+            ].map((item, i) => (
+              <div key={i} className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-shadow">
+                <item.icon className="w-10 h-10 text-[var(--color-primary)] mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-600">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* 6️⃣ HOW IT WORKS — EXTREMELY SIMPLE */}
+        {/* --- 6. HOW IT WORKS (from second design) --- */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 bg-gray-50/50 rounded-3xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -482,38 +440,24 @@ export function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[var(--color-primary)]/10 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-[var(--color-primary)]">1</span>
+            {[
+              { step: '1', title: 'Create your community', desc: 'Choose a name, upload your logo, pick your colours.' },
+              { step: '2', title: 'Customise your website', desc: 'Turn on the features you need – events, groups, files.' },
+              { step: '3', title: 'Invite your members', desc: 'Send invites via email or share a join link.' },
+              { step: '4', title: 'Manage everything in one place', desc: 'Post updates, schedule events, and grow.' },
+            ].map((item, i) => (
+              <div key={i} className="text-center">
+                <div className="w-16 h-16 mx-auto bg-[var(--color-primary)]/10 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl font-bold text-[var(--color-primary)]">{item.step}</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-600">{item.desc}</p>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Create your community</h3>
-              <p className="text-gray-600">Choose a name, upload your logo, pick your colours.</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[var(--color-primary)]/10 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-[var(--color-primary)]">2</span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Customise your website</h3>
-              <p className="text-gray-600">Turn on the features you need – events, groups, files.</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[var(--color-primary)]/10 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-[var(--color-primary)]">3</span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Invite your members</h3>
-              <p className="text-gray-600">Send invites via email or share a join link.</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[var(--color-primary)]/10 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-[var(--color-primary)]">4</span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Manage everything in one place</h3>
-              <p className="text-gray-600">Post updates, schedule events, and grow.</p>
-            </div>
+            ))}
           </div>
         </section>
 
-        {/* 7️⃣ TRUST, SCALE & SERIOUSNESS */}
+        {/* --- 7. TRUST, SCALE & SERIOUSNESS (from second design) --- */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
@@ -521,62 +465,44 @@ export function HomePage() {
                 A platform you can trust with your community
               </h2>
               <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <Lock className="w-6 h-6 text-[var(--color-primary)] flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">Secure by default</h3>
-                    <p className="text-gray-600">All data encrypted, SSO ready, and GDPR compliant.</p>
+                {[
+                  { icon: Lock, title: 'Secure by default', desc: 'All data encrypted, SSO ready, and GDPR compliant.' },
+                  { icon: Shield, title: 'Private & isolated', desc: 'Each community is a separate tenant – your data stays yours.' },
+                  { icon: TrendingUp, title: 'Built for growth', desc: 'From 10 members to 100,000 – we scale with you.' },
+                  { icon: HeartHandshake, title: 'Managed & supported', desc: 'Dedicated support, regular updates, and 99.9% uptime SLA.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-4">
+                    <item.icon className="w-6 h-6 text-[var(--color-primary)] flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">{item.title}</h3>
+                      <p className="text-gray-600">{item.desc}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Shield className="w-6 h-6 text-[var(--color-primary)] flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">Private & isolated</h3>
-                    <p className="text-gray-600">Each community is a separate tenant – your data stays yours.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <TrendingUp className="w-6 h-6 text-[var(--color-primary)] flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">Built for growth</h3>
-                    <p className="text-gray-600">From 10 members to 100,000 – we scale with you.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <HeartHandshake className="w-6 h-6 text-[var(--color-primary)] flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">Managed & supported</h3>
-                    <p className="text-gray-600">Dedicated support, regular updates, and 99.9% uptime SLA.</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Stats as trust signals */}
             <div className="grid grid-cols-2 gap-8">
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-                <p className="text-4xl font-bold text-gray-900">50+</p>
-                <p className="text-sm text-gray-600 mt-1">Active communities</p>
-              </div>
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-                <p className="text-4xl font-bold text-gray-900">10k+</p>
-                <p className="text-sm text-gray-600 mt-1">Community members</p>
-              </div>
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-                <p className="text-4xl font-bold text-gray-900">99.9%</p>
-                <p className="text-sm text-gray-600 mt-1">Uptime</p>
-              </div>
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-                <p className="text-4xl font-bold text-gray-900">24/7</p>
-                <p className="text-sm text-gray-600 mt-1">Support</p>
-              </div>
+              {[
+                { stat: '50+', label: 'Active communities' },
+                { stat: '10k+', label: 'Community members' },
+                { stat: '99.9%', label: 'Uptime' },
+                { stat: '24/7', label: 'Support' },
+              ].map((item, i) => (
+                <div key={i} className="text-center p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                  <p className="text-4xl font-bold text-gray-900">{item.stat}</p>
+                  <p className="text-sm text-gray-600 mt-1">{item.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* 8️⃣ FINAL CTA — DECISIVE, CONFIDENT */}
+        {/* --- 8. FINAL CTA (from second design) --- */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-12 md:p-16 text-center text-white shadow-2xl">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-12 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
+            {/* Extra glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32" />
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               Build your community the right way.
             </h2>
@@ -588,7 +514,7 @@ export function HomePage() {
                 <Button
                   size="lg"
                   variant="primary"
-                  className="bg-white text-gray-900 hover:bg-gray-100 gap-2 w-full sm:w-auto"
+                  className="bg-white text-gray-900 hover:bg-gray-100 gap-2 w-full sm:w-auto px-10 py-8 text-xl rounded-2xl"
                   leftIcon={<KeyRound className="w-4 h-4" />}
                 >
                   Create a Community Hub
@@ -602,7 +528,7 @@ export function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white text-white hover:bg-white/10 gap-2 w-full sm:w-auto"
+                  className="border-white text-white hover:bg-white/10 gap-2 w-full sm:w-auto px-10 py-8 text-xl rounded-2xl"
                   leftIcon={<MessageCircle className="w-4 h-4" />}
                 >
                   Contact sales
@@ -618,9 +544,14 @@ export function HomePage() {
             </p>
           </div>
         </section>
+
+        {/* --- FOOTER (from first design) --- */}
+        <footer className="py-12 border-t border-slate-100 text-center text-slate-400 text-sm">
+          <p>© 2026 {organization.name}. All rights reserved.</p>
+        </footer>
       </div>
 
-      {/* Animations (same as before) */}
+      {/* --- ANIMATIONS (merged) --- */}
       <style>{`
         @keyframes fade-in-left {
           0% { opacity: 0; transform: translateX(-20px); }
@@ -665,7 +596,9 @@ export function HomePage() {
         .animate-float-slow-reverse {
           animation: float-slow-reverse 7s ease-in-out infinite;
         }
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
       `}</style>
-    </>
+    </div>
   );
 }

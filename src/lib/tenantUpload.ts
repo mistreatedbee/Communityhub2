@@ -131,6 +131,31 @@ export async function uploadTenantAnnouncementAttachment(
   };
 }
 
+export async function uploadTenantPostMedia(tenantId: string, file: File): Promise<FileUploadResult> {
+  const token = getToken();
+  if (!token) throw new Error('Not authenticated');
+  const base = getApiBaseUrl();
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${base}/api/tenants/${tenantId}/upload/post-media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || err?.message || 'Upload failed');
+  }
+  const json = await res.json();
+  const data = json?.data ?? json;
+  return {
+    fileId: data.fileId,
+    fileName: data.fileName ?? file.name,
+    mimeType: data.mimeType ?? file.type,
+    size: data.size ?? file.size
+  };
+}
+
 export function getTenantFileUrl(tenantId: string, fileId: string): string {
   const base = getApiBaseUrl();
   return `${base}/api/tenants/${tenantId}/files/${fileId}`;

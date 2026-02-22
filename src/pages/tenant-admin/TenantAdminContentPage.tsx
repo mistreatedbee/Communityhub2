@@ -9,7 +9,6 @@ import {
   Image as ImageIcon,
   Trash2,
   Edit,
-  Eye,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -22,6 +21,8 @@ import {
   tenantFeaturesPost,
   tenantFeaturesPut,
 } from '../../lib/tenantFeatures';
+import { uploadTenantPostMedia, getTenantFileUrl } from '../../lib/tenantUpload';
+import { validateImageFile } from '../../lib/uploadValidation';
 
 type PostRow = {
   _id: string;
@@ -61,14 +62,16 @@ export function TenantAdminContentPage() {
   // Create form state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [mediaUrlsText, setMediaUrlsText] = useState('');
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [mediaUploading, setMediaUploading] = useState(false);
 
   // Edit state
   const [editItem, setEditItem] = useState<PostRow | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [editVisibility, setEditVisibility] = useState<PostRow['visibility']>('MEMBERS');
-  const [editMediaUrlsText, setEditMediaUrlsText] = useState('');
+  const [editMediaUrls, setEditMediaUrls] = useState<string[]>([]);
+  const [editMediaUploading, setEditMediaUploading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
 
   const load = async () => {
@@ -104,11 +107,36 @@ export function TenantAdminContentPage() {
     setFilteredItems(filtered);
   }, [searchTerm, items]);
 
-  const parseUrls = (text: string) =>
-    text
-      .split(/[\n,]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+  const addMediaFiles = async (files: FileList | null, isEdit: boolean) => {
+    if (!files?.length || !tenant?.id) return;
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const result = validateImageFile(files[i]);
+      if (!result.valid) {
+        addToast(`${files[i].name}: ${result.error}`, 'error');
+        continue;
+      }
+      validFiles.push(files[i]);
+    }
+    if (!validFiles.length) return;
+    if (isEdit) setEditMediaUploading(true);
+    else setMediaUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const file of validFiles) {
+        const res = await uploadTenantPostMedia(tenant.id, file);
+        urls.push(getTenantFileUrl(tenant.id, res.fileId));
+      }
+      if (isEdit) setEditMediaUrls((prev) => [...prev, ...urls]);
+      else setMediaUrls((prev) => [...prev, ...urls]);
+      addToast('Media uploaded.', 'success');
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Media upload failed', 'error');
+    } finally {
+      if (isEdit) setEditMediaUploading(false);
+      else setMediaUploading(false);
+    }
+  };
 
   const create = async () => {
     if (!tenant?.id || !title.trim() || !content.trim()) return;
@@ -118,12 +146,12 @@ export function TenantAdminContentPage() {
         content,
         visibility: 'MEMBERS',
         isPublished: true,
-        mediaUrls: parseUrls(mediaUrlsText),
+        mediaUrls,
       });
       addToast('Post published', 'success');
       setTitle('');
       setContent('');
-      setMediaUrlsText('');
+      setMediaUrls([]);
       await load();
     } catch (e) {
       addToast(e instanceof Error ? e.message : 'Failed to create post', 'error');
@@ -135,7 +163,7 @@ export function TenantAdminContentPage() {
     setEditTitle(item.title);
     setEditContent(item.content);
     setEditVisibility(item.visibility);
-    setEditMediaUrlsText((item.mediaUrls || []).join('\n'));
+    setEditMediaUrls(item.mediaUrls ? [...item.mediaUrls] : []);
   };
 
   const saveEdit = async () => {
@@ -147,7 +175,7 @@ export function TenantAdminContentPage() {
         content: editContent,
         visibility: editVisibility,
         isPublished: true,
-        mediaUrls: parseUrls(editMediaUrlsText),
+        mediaUrls: editMediaUrls,
       });
       addToast('Post updated', 'success');
       setEditItem(null);
@@ -236,15 +264,38 @@ export function TenantAdminContentPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Media URLs (one per line, optional)
+              Media (images only, optional)
             </label>
-            <textarea
-              className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)]/30 focus:border-[var(--color-primary)] transition"
-              rows={2}
-              placeholder="https://example.com/image.jpg"
-              value={mediaUrlsText}
-              onChange={(e) => setMediaUrlsText(e.target.value)}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              className="block w-full text-sm text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+              disabled={mediaUploading}
+              onChange={(e) => {
+                addMediaFiles(e.target.files, false);
+                e.target.value = '';
+              }}
             />
+            {mediaUploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+            {mediaUrls.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {mediaUrls.map((url, i) => (
+                  <li key={url} className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 rounded px-2 py-1">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span className="truncate max-w-[120px]">Image {i + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => setMediaUrls((prev) => prev.filter((_, j) => j !== i))}
+                      className="text-gray-400 hover:text-red-600"
+                      aria-label="Remove"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <Button
             onClick={() => void create()}
@@ -402,15 +453,38 @@ export function TenantAdminContentPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Media URLs (one per line, optional)
+                  Media (images only, optional)
                 </label>
-                <textarea
-                  className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)]/30 focus:border-[var(--color-primary)] transition"
-                  rows={2}
-                  placeholder="https://example.com/image.jpg"
-                  value={editMediaUrlsText}
-                  onChange={(e) => setEditMediaUrlsText(e.target.value)}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  className="block w-full text-sm text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                  disabled={editMediaUploading}
+                  onChange={(e) => {
+                    addMediaFiles(e.target.files, true);
+                    e.target.value = '';
+                  }}
                 />
+                {editMediaUploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+                {editMediaUrls.length > 0 && (
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {editMediaUrls.map((url, i) => (
+                      <li key={`${url}-${i}`} className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 rounded px-2 py-1">
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span className="truncate max-w-[120px]">Image {i + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditMediaUrls((prev) => prev.filter((_, j) => j !== i))}
+                          className="text-gray-400 hover:text-red-600"
+                          aria-label="Remove"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           )}

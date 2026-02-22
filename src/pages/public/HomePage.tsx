@@ -216,7 +216,7 @@ const CAPABILITIES = [
   {
     Icon: Users, badge: 'Member Profiles',
     title: 'People, not phone numbers.',
-    desc: 'Rich profiles with photos, roles, and bios. Admins see who's engaged. Members feel known.',
+    desc: "Rich profiles with photos, roles, and bios. Admins see who's engaged. Members feel known.",
   },
 ];
 

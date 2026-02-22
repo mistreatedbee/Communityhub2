@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search, User, Share2 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
+import { Button } from '../ui/Button';
 import { Dropdown } from '../ui/Dropdown';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../ui/Toast';
 import { clearImpersonation, getImpersonation } from '../../utils/impersonation';
 import { apiClient } from '../../lib/apiClient';
 
@@ -12,14 +14,47 @@ interface TopBarProps {
   variant: 'tenant-admin' | 'tenant-member' | 'super-admin';
   tenantId?: string | null;
   tenantSlug?: string;
+  tenantName?: string;
+  membersCanShareInviteLinks?: boolean;
 }
 
-export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' }: TopBarProps) {
+export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '', tenantName, membersCanShareInviteLinks }: TopBarProps) {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const { user, profileName, signOut, memberships } = useAuth();
   const [unreadCount] = useState(0);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [memberTenants, setMemberTenants] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  const showShareCommunity = variant === 'tenant-member' && membersCanShareInviteLinks && tenantSlug;
+
+  const copyCommunityLink = () => {
+    if (!tenantSlug) return;
+    const url = `${window.location.origin}/c/${tenantSlug}`;
+    navigator.clipboard.writeText(url);
+    addToast('Link copied.', 'success');
+  };
+
+  const shareCommunity = async () => {
+    if (!tenantSlug) return;
+    const url = `${window.location.origin}/c/${tenantSlug}`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: tenantName ? `${tenantName} – Community` : 'Join our community',
+          text: tenantName ? `Join ${tenantName} on Community Hub` : 'Join us on Community Hub',
+          url
+        });
+        addToast('Thanks for sharing!', 'success');
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          copyCommunityLink();
+        }
+      }
+    } else {
+      copyCommunityLink();
+    }
+  };
 
   useEffect(() => {
     const impersonation = getImpersonation();
@@ -74,7 +109,19 @@ export function TopBar({ isSidebarCollapsed, variant, tenantId, tenantSlug = '' 
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          {showShareCommunity && (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={copyCommunityLink} leftIcon={<Share2 className="w-4 h-4" />}>
+                Copy link
+              </Button>
+              {typeof navigator !== 'undefined' && navigator.share && (
+                <Button size="sm" variant="outline" onClick={() => void shareCommunity()}>
+                  Share
+                </Button>
+              )}
+            </div>
+          )}
           <button className="relative text-gray-500 hover:text-gray-700 transition-colors">
             <Bell className="w-5 h-5" />
             {tenantId && unreadCount > 0 && (

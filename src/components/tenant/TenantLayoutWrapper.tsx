@@ -4,7 +4,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { Spinner } from '../ui/Spinner';
 
 export function TenantLayoutWrapper({ variant }: { variant: 'tenant-admin' | 'tenant-member' }) {
-  const { tenant, loading, enabledSections } = useTenant();
+  const { tenant, loading, enabledSections, settings } = useTenant();
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -19,6 +19,7 @@ export function TenantLayoutWrapper({ variant }: { variant: 'tenant-admin' | 'te
       tenantName={tenant?.name}
       tenantId={tenant?.id}
       enabledSections={enabledSections}
+      membersCanShareInviteLinks={settings?.members_can_share_invite_links ?? false}
     />
   );
 }

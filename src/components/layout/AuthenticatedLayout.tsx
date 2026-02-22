@@ -8,8 +8,9 @@ type LayoutProps = {
   tenantName?: string;
   tenantId?: string | null;
   enabledSections?: string[];
+  membersCanShareInviteLinks?: boolean;
 };
-export function AuthenticatedLayout({ variant, tenantSlug, tenantName, tenantId, enabledSections }: LayoutProps) {
+export function AuthenticatedLayout({ variant, tenantSlug, tenantName, tenantId, enabledSections, membersCanShareInviteLinks }: LayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   return (
     <div className="min-h-screen bg-gray-50">
@@ -23,7 +24,14 @@ export function AuthenticatedLayout({ variant, tenantSlug, tenantName, tenantId,
       />
 
 
-      <TopBar isSidebarCollapsed={isSidebarCollapsed} variant={variant} tenantId={tenantId} tenantSlug={tenantSlug} />
+      <TopBar
+        isSidebarCollapsed={isSidebarCollapsed}
+        variant={variant}
+        tenantId={tenantId}
+        tenantSlug={tenantSlug}
+        tenantName={tenantName}
+        membersCanShareInviteLinks={membersCanShareInviteLinks}
+      />
 
       <main
         className={`

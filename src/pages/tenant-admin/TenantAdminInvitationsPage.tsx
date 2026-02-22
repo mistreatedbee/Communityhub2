@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, X, Mail, Phone, Calendar, Link as LinkIcon, RefreshCw, Ban, Plus } from 'lucide-react';
+import { Search, X, Mail, Phone, Calendar, Link as LinkIcon, RefreshCw, Ban, Plus, Share2, Copy } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useTenant } from '../../contexts/TenantContext';
@@ -14,6 +14,17 @@ type Invitation = {
   status: 'SENT' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
   expiresAt: string;
   token: string;
+};
+
+type InviteLinkRow = {
+  _id: string;
+  token: string;
+  createdBy: string;
+  expiresAt: string | null;
+  maxUses: number | null;
+  usedCount: number;
+  status: 'ACTIVE' | 'DISABLED';
+  createdAt: string;
 };
 
 const roleColors = {
@@ -48,6 +59,25 @@ export function TenantAdminInvitationsPage() {
   const [filteredItems, setFilteredItems] = useState<Invitation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [inviteLinks, setInviteLinks] = useState<InviteLinkRow[]>([]);
+  const [inviteLinksLoading, setInviteLinksLoading] = useState(true);
+  const [linkExpiresInDays, setLinkExpiresInDays] = useState('');
+  const [linkMaxUses, setLinkMaxUses] = useState('');
+  const [creatingLink, setCreatingLink] = useState(false);
+  const [lastCreatedJoinUrl, setLastCreatedJoinUrl] = useState<string | null>(null);
+
+  const loadInviteLinks = async () => {
+    if (!tenant?.id) return;
+    setInviteLinksLoading(true);
+    try {
+      const rows = await tenantFeaturesGet<InviteLinkRow[]>(tenant.id, '/invite-links');
+      setInviteLinks(rows);
+    } catch {
+      setInviteLinks([]);
+    } finally {
+      setInviteLinksLoading(false);
+    }
+  };
 
   const load = async () => {
     if (!tenant?.id) return;
@@ -65,6 +95,10 @@ export function TenantAdminInvitationsPage() {
 
   useEffect(() => {
     void load();
+  }, [tenant?.id]);
+
+  useEffect(() => {
+    void loadInviteLinks();
   }, [tenant?.id]);
 
   // Filter invitations based on search term
@@ -128,7 +162,47 @@ export function TenantAdminInvitationsPage() {
     if (!tenant?.slug) return;
     const url = `${window.location.origin}/c/${tenant.slug}/join?invite=${token}`;
     navigator.clipboard.writeText(url);
-    addToast('Join link copied to clipboard', 'success');
+    addToast('Link copied.', 'success');
+  };
+
+  const copyPublicLink = () => {
+    if (!tenant?.slug) return;
+    const url = `${window.location.origin}/c/${tenant.slug}`;
+    navigator.clipboard.writeText(url);
+    addToast('Link copied.', 'success');
+  };
+
+  const createInviteLink = async () => {
+    if (!tenant?.id) return;
+    setCreatingLink(true);
+    setLastCreatedJoinUrl(null);
+    try {
+      const body: { expiresInDays?: number; maxUses?: number } = {};
+      const days = linkExpiresInDays.trim() ? Number(linkExpiresInDays) : undefined;
+      const max = linkMaxUses.trim() ? Number(linkMaxUses) : undefined;
+      if (days != null && !Number.isNaN(days) && days > 0) body.expiresInDays = Math.min(365, days);
+      if (max != null && !Number.isNaN(max) && max > 0) body.maxUses = max;
+      const result = await tenantFeaturesPost<InviteLinkRow & { joinUrl?: string }>(tenant.id, '/invite-links', body);
+      const joinUrl = result.joinUrl ?? (tenant.slug ? `${window.location.origin}/c/${tenant.slug}/join?invite=${result.token}` : null);
+      setLastCreatedJoinUrl(joinUrl);
+      await loadInviteLinks();
+      addToast('Invite link created.', 'success');
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Failed to create invite link', 'error');
+    } finally {
+      setCreatingLink(false);
+    }
+  };
+
+  const revokeInviteLink = async (id: string) => {
+    if (!tenant?.id) return;
+    try {
+      await tenantFeaturesPut(tenant.id, `/invite-links/${id}/revoke`, {});
+      await loadInviteLinks();
+      addToast('Invite link revoked.', 'success');
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Failed to revoke invite link', 'error');
+    }
   };
 
   const clearSearch = () => setSearchTerm('');
@@ -169,6 +243,91 @@ export function TenantAdminInvitationsPage() {
               </button>
             )}
           </div>
+        </div>
+
+        {/* Share your community */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-[var(--color-primary)]" />
+            Share your community
+          </h2>
+          <div className="flex flex-wrap gap-3 items-center">
+            <Button variant="outline" onClick={copyPublicLink} leftIcon={<Copy className="w-4 h-4" />}>
+              Copy community link
+            </Button>
+            <span className="text-sm text-gray-500">or generate an invite link (anyone with the link can join):</span>
+          </div>
+          <div className="flex flex-wrap gap-3 items-end">
+            <Input
+              label="Expires in (days)"
+              type="number"
+              min="1"
+              max="365"
+              placeholder="Optional"
+              value={linkExpiresInDays}
+              onChange={(e) => setLinkExpiresInDays(e.target.value)}
+              className="w-32"
+            />
+            <Input
+              label="Max uses"
+              type="number"
+              min="1"
+              placeholder="Optional"
+              value={linkMaxUses}
+              onChange={(e) => setLinkMaxUses(e.target.value)}
+              className="w-32"
+            />
+            <Button onClick={() => void createInviteLink()} isLoading={creatingLink} disabled={creatingLink}>
+              Generate invite link
+            </Button>
+          </div>
+          {lastCreatedJoinUrl && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <code className="text-xs text-gray-700 truncate flex-1 min-w-0">{lastCreatedJoinUrl}</code>
+              <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(lastCreatedJoinUrl!); addToast('Link copied.', 'success'); }}>
+                Copy
+              </Button>
+            </div>
+          )}
+          {inviteLinksLoading ? (
+            <div className="h-20 rounded-lg bg-gray-100 animate-pulse" />
+          ) : inviteLinks.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">Active invite links</p>
+              <ul className="space-y-2">
+                {inviteLinks.map((link) => (
+                  <li
+                    key={link._id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2"
+                  >
+                    <span className="text-xs text-gray-600 truncate">
+                      Created {new Date(link.createdAt).toLocaleDateString()}
+                      {link.expiresAt ? ` · Expires ${new Date(link.expiresAt).toLocaleDateString()}` : ''}
+                      {link.maxUses != null ? ` · ${link.usedCount}/${link.maxUses} uses` : ` · ${link.usedCount} uses`}
+                      {link.status === 'DISABLED' && ' · Revoked'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {link.status === 'ACTIVE' && (
+                        <button
+                          type="button"
+                          onClick={() => copyJoinLink(link.token)}
+                          className="text-gray-500 hover:text-[var(--color-primary)] p-1"
+                          title="Copy link"
+                        >
+                          <LinkIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                      {link.status === 'ACTIVE' && (
+                        <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => void revokeInviteLink(link._id)}>
+                          Revoke
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         {/* Create invitation form */}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Megaphone, Search } from 'lucide-react';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -60,6 +60,9 @@ function tenantFromContext(tenant: { id: string; name: string; slug: string; des
 
 export function TenantPublicPage() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
+  const [searchParams] = useSearchParams();
+  const inviteParam = searchParams.get('invite')?.trim() ?? '';
+  const joinQuery = inviteParam ? `?invite=${encodeURIComponent(inviteParam)}` : '';
   const { user } = useAuth();
   const { tenant: contextTenant, membership, loading: tenantLoading } = useTenant();
   const { updateTheme } = useTheme();
@@ -141,15 +144,15 @@ export function TenantPublicPage() {
       />
       <div className="flex flex-wrap gap-3 mb-10">
         {user ? (
-          <Link to={`/c/${tenant.slug}/join`}>
+          <Link to={`/c/${tenant.slug}/join${joinQuery}`}>
             <Button>Join community</Button>
           </Link>
         ) : (
           <>
-            <Link to={`/c/${tenant.slug}/join`}>
+            <Link to={`/c/${tenant.slug}/join${joinQuery}`}>
               <Button>Join community</Button>
             </Link>
-            <Link to="/login" state={{ from: `/c/${tenant.slug}` }}>
+            <Link to="/login" state={{ from: `/c/${tenant.slug}${inviteParam ? `?invite=${encodeURIComponent(inviteParam)}` : ''}` }}>
               <Button variant="outline">Log in</Button>
             </Link>
           </>

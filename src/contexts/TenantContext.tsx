@@ -24,6 +24,7 @@ type TenantSettings = {
   public_signup: boolean;
   approval_required: boolean;
   registration_fields_enabled: boolean;
+  members_can_share_invite_links: boolean;
   enabled_sections: string[];
 };
 
@@ -91,6 +92,7 @@ export function TenantProvider({ tenantSlug, children }: { tenantSlug: string; c
           publicSignup: boolean;
           approvalRequired: boolean;
           registrationFieldsEnabled: boolean;
+          membersCanShareInviteLinks?: boolean;
           enabledSections?: string[];
         };
         theme?: { primaryColor?: string; secondaryColor?: string; logoUrl?: string };
@@ -138,6 +140,7 @@ export function TenantProvider({ tenantSlug, children }: { tenantSlug: string; c
         public_signup: data.settings.publicSignup,
         approval_required: data.settings.approvalRequired,
         registration_fields_enabled: data.settings.registrationFieldsEnabled,
+        members_can_share_invite_links: data.settings.membersCanShareInviteLinks ?? false,
         enabled_sections: sections
       });
       setEnabledSections(sections);

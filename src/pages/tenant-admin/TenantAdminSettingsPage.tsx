@@ -28,6 +28,7 @@ type Settings = {
   publicSignup: boolean;
   approvalRequired: boolean;
   registrationFieldsEnabled: boolean;
+  membersCanShareInviteLinks?: boolean;
   enabledSections?: string[];
 };
 
@@ -402,6 +403,19 @@ export function TenantAdminSettingsPage() {
                 className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
               />
               <span className="text-sm text-gray-700">Enable custom registration fields</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.membersCanShareInviteLinks ?? false}
+                onChange={(e) =>
+                  setSettings((prev) =>
+                    prev ? { ...prev, membersCanShareInviteLinks: e.target.checked } : prev
+                  )
+                }
+                className="w-4 h-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+              />
+              <span className="text-sm text-gray-700">Allow members to share community</span>
             </label>
           </div>
 

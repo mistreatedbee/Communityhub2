@@ -31,6 +31,7 @@ type JoinInfo = {
     valid: boolean;
     expiresAt: string;
   };
+  inviteLink?: null | { token: string; valid: boolean };
 };
 
 export function TenantJoinPage() {
@@ -85,7 +86,8 @@ export function TenantJoinPage() {
     event.preventDefault();
     if (!tenantSlug) return;
 
-    if (joinInfo?.invitation && !joinInfo.invitation.valid) {
+    const hasValidInviteLink = joinInfo?.inviteLink?.valid;
+    if (joinInfo?.invitation && !joinInfo.invitation.valid && !hasValidInviteLink) {
       addToast(`Invitation is ${joinInfo.invitation.status.toLowerCase()}.`, 'error');
       return;
     }
@@ -289,6 +291,10 @@ export function TenantJoinPage() {
             <span className={joinInfo.invitation.valid ? 'text-green-700' : 'text-red-700'}>
               {joinInfo.invitation.valid ? 'valid' : joinInfo.invitation.status.toLowerCase()}
             </span>
+          </div>
+        ) : joinInfo.inviteLink?.valid ? (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+            You&apos;re joining via an invite link.
           </div>
         ) : null}
 

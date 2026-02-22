@@ -191,7 +191,7 @@ const CAPABILITIES = [
   {
     Icon: Home, badge: 'Real Community Website',
     title: 'A branded home. Not a group chat.',
-    desc: 'Your members land on a beautiful, custom-branded space with your logo, colors, and messaging. It feels like your organization's digital headquarters — not a side project.',
+    desc: "Your members land on a beautiful, custom-branded space with your logo, colors, and messaging. It feels like your organization's digital headquarters — not a side project.",
   },
   {
     Icon: Megaphone, badge: 'Announcements That Reach People',

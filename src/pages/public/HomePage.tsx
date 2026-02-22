@@ -310,9 +310,13 @@ export function HomePage() {
         <div className="ch-hero-inner">
           {/* Left column */}
           <div className="ch-hero-left">
-            {/* Logo */}
+            {/* Logo - bigger and more visible */}
             <div className="ch-hero-logo-wrap" style={{ animation: 'chSlideDown 0.7s cubic-bezier(0.16,1,0.3,1) forwards' }}>
-              <img src="/logo.png" alt={organization.name} className="ch-hero-logo" />
+              {organization.logo ? (
+                <img src={organization.logo} alt={organization.name} className="ch-hero-logo" />
+              ) : (
+                <span className="ch-hero-logo-fallback">{organization.name}</span>
+              )}
             </div>
 
             {/* Badge */}
@@ -684,7 +688,7 @@ export function HomePage() {
   );
 }
 
-// ─── CSS ──────────────────────────────────────────────────────────────────────
+// ─── CSS (modified for bigger logo) ───────────────────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -762,11 +766,26 @@ const CSS = `
   }
   .ch-hero-left { display: flex; flex-direction: column; align-items: flex-start; }
 
+  /* Logo - bigger and more visible */
   .ch-hero-logo-wrap { margin-bottom: 32px; }
   .ch-hero-logo {
-    height: 52px; width: auto;
-    filter: brightness(0) invert(1);
-    opacity: 0.95;
+    height: 72px;
+    width: auto;
+    filter: drop-shadow(0 8px 16px rgba(79,110,247,0.25));
+    transition: transform 0.3s ease;
+  }
+  .ch-hero-logo:hover {
+    transform: scale(1.05);
+  }
+  .ch-hero-logo-fallback {
+    font-family: var(--ch-display);
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ffffff, #e0e7ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
   }
 
   .ch-hero-badge {
@@ -1212,7 +1231,8 @@ const CSS = `
   }
   @media (max-width: 640px) {
     .ch-hero { padding: 56px 20px 32px; }
-    .ch-hero-logo { height: 40px; }
+    .ch-hero-logo { height: 56px; }
+    .ch-hero-logo-fallback { font-size: 1.8rem; }
     .ch-hero-h1 { font-size: clamp(2.4rem, 9vw, 3.5rem); }
     .ch-hero-sub { font-size: 1rem; }
     .ch-hero-ctas { flex-direction: column; align-items: stretch; }
